@@ -319,7 +319,7 @@ body{
 .dr-r .rd{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:600;color:var(--opto);
   background:rgba(124,140,248,.12);padding:1px 7px;border-radius:5px}
 
-/* col 3: domain bars + findings */
+/* col 3: domain bars + animated publication-source results */
 .dr-domains{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
 .dr-dom{display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .4s}
 .dr-dom.show{opacity:1}
@@ -331,20 +331,23 @@ body{
   background:linear-gradient(90deg,var(--hydro),var(--teal));transition:width .9s cubic-bezier(.4,0,.2,1); display: block;;}
 .dr-dom-more{font-size:12px;color:var(--dim);font-style:italic;margin-top:1px;opacity:0;transition:opacity .4s}
 .dr-dom-more.show{opacity:1}
-.dr-findings{display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
-.dr-find{font-size:13px;line-height:1.4;color:#c2cce0;opacity:0;transform:translateY(6px);
-  transition:all .45s;padding-left:13px;position:relative}
-.dr-find::before{content:"•";position:absolute;left:0;color:var(--teal)}
-.dr-find.show{opacity:1;transform:none}
-.dr-find .tok-cite{margin-left:4px}
-
-/* report-ready flash */
-.dr-done{position:absolute;right:40px;bottom:84px;display:flex;align-items:center;gap:9px;
-  font-size:13px;font-weight:700;color:#04201b;padding:9px 17px;border-radius:11px;
-  background:linear-gradient(90deg,var(--teal),var(--bio));box-shadow:0 0 26px rgba(45,212,191,.5);
-  opacity:0;transform:translateY(8px) scale(.96);transition:all .5s cubic-bezier(.34,1.56,.64,1);z-index:7}
-.dr-done.show{opacity:1;transform:none}
-.dr-boom{font-size:15px}
+.dr-results{display:grid;grid-template-columns:158px minmax(0,1fr);gap:10px;align-items:center;flex:1;min-height:0}
+.dr-pie-wrap{position:relative;width:158px;height:158px;display:grid;place-items:center}
+.dr-pie{width:158px;height:158px;display:block;transform:rotate(-90deg);overflow:visible;filter:drop-shadow(0 0 12px rgba(124,140,248,.12))}
+.dr-pie-track,.dr-pie-seg{fill:none;stroke-width:14}
+.dr-pie-track{stroke:#182238}
+.dr-pie-seg{stroke-linecap:butt;stroke-dasharray:0 276.46;transition:stroke-dasharray .72s cubic-bezier(.4,0,.2,1),filter .35s ease}
+.dr-pie-seg.live{filter:drop-shadow(0 0 5px currentColor)}
+.dr-pie-total{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+.dr-pie-total b{font:700 20px/1 'JetBrains Mono',monospace;color:#fff}
+.dr-pie-total span{margin-top:5px;font:600 9px/1.15 'Source Sans 3',sans-serif;letter-spacing:.7px;text-transform:uppercase;color:var(--muted)}
+.dr-pie-legend{display:flex;flex-direction:column;gap:5px;min-width:0}
+.dr-pie-item{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:6px;align-items:center;padding:3px 0;opacity:.24;transform:translateX(6px);transition:opacity .35s ease,transform .35s ease}
+.dr-pie-item.live{opacity:1;transform:none}
+.dr-pie-dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 7px currentColor}
+.dr-pie-name{font-size:10.5px;line-height:1.12;color:#c6d0e2;overflow-wrap:anywhere}
+.dr-pie-value{font:700 10.5px/1 'JetBrains Mono',monospace;color:#fff}
+.dr-pie-note{margin-top:5px;text-align:center;font:500 9px/1.25 'JetBrains Mono',monospace;color:var(--dim)}
 
 /* ---- stage 3: literature report ---- */
 .conf-wrap{width:330px;display:flex;flex-direction:column;gap:18px}
@@ -540,7 +543,7 @@ body{
 #stage.paused *{animation-play-state:paused!important}
 
 /* ============================================================
-   STAGE 7 — RESULTS RADARS (Figure 2a)
+   STAGE 7 — DYNAMIC RESULTS
    ============================================================ */
 .results-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
 .results-head{text-align:center}
@@ -558,95 +561,14 @@ body{
 .rp-head .agent-icon{width:34px;height:34px;border-radius:10px}
 .rp-name{font-size:17px;font-weight:700;color:#e6ecf7}
 .rp-card svg{width:100%;height:auto;display:block}
-.rgrid{fill:none;stroke:var(--border);stroke-width:1;opacity:0;
-  transform-box:fill-box;transform-origin:center;transform:scale(.72);
-  transition:opacity .5s ease, transform .55s cubic-bezier(.4,0,.2,1)}
-.rgrid.router{stroke:var(--border2)}
-.rspoke{stroke:var(--border);stroke-width:1;opacity:0;transition:opacity .5s ease}
-.rtick{fill:var(--dim);font-size:8px;font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .5s ease}
-.rgrid-group.drawn .rgrid{opacity:1;transform:scale(1)}
-.rgrid-group.drawn .rspoke{opacity:1}
-.rgrid-group.drawn .rtick{opacity:.7}
-.rlabel-group{opacity:0;transform:translateY(4px);transition:opacity .5s ease, transform .5s ease}
-.rlabel-group.shown{opacity:1;transform:none}
-.rlbl{fill:#b7c2d8;font-size:13px;font-weight:600;font-family:'Source Sans 3',sans-serif}
-.rprof{fill-opacity:.13;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.rdot{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0);
-  transition:opacity .3s ease, transform .4s cubic-bezier(.34,1.56,.64,1)}
-.rdot.pop{opacity:1;transform:scale(1)}
 .results-legend{display:flex;justify-content:center;gap:26px;font-size:14px;color:var(--muted);flex-wrap:wrap}
-.rlgd-item{display:flex;align-items:center;gap:9px;opacity:.4;transition:opacity .4s ease, color .4s ease}
-.rlgd-item.lit{opacity:1;color:#e6ecf7}
-.rlgd-sw{width:22px;height:12px;border-radius:3px;border:2px solid;box-sizing:border-box}
-.rlgd-item.lit .rlgd-sw{box-shadow:0 0 12px currentColor}
-
 /* ============================================================
-   STAGE 8 — OVERVIEW (aggregate model-comparison radar)
-   reuses .rgrid/.rspoke/.rtick/.rlbl/.rprof/.rdot + .rlgd-item/.rlgd-sw
-   ============================================================ */
-.agg-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
-.agg-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 22px;
-  background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);border-radius:16px;
-  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 34px rgba(124,140,248,.06);
-  opacity:0;transform:translateY(14px) scale(.98);
-  transition:opacity .5s cubic-bezier(.34,1.56,.64,1), transform .5s cubic-bezier(.34,1.56,.64,1)}
-.agg-card.in{opacity:1;transform:none}
-.agg-head{text-align:center}
-.agg-head .title{font-size:23px;font-weight:700;letter-spacing:.4px;
-  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
-.agg-head .sub{font-size:12.5px;color:var(--muted);letter-spacing:.4px;margin-top:3px}
-#agg-radar{height:380px;width:auto;display:block}   /* viewBox 500x372 -> ~511px wide on screen */
-.agg-legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
-.agg-legend .rlgd-item{gap:8px}
-.agg-ico{width:24px;height:24px;border-radius:7px;padding:4px}
-.agg-lgd-name{font-size:14px;font-weight:600}
-/* ============================================================
-   STEPPER COMPACTION (14 stages) — show the label only on the active step
+   STEPPER COMPACTION — show the label only on the active step
    ============================================================ */
 #stepper .step .lbl{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;
   transition:max-width .45s ease, opacity .4s ease, margin .4s ease;margin-left:0}
 #stepper .step.active .lbl{max-width:160px;opacity:1;margin-left:3px}
 #stepper .bar{min-width:5px}
-
-/* ============================================================
-   STAGE 9 — EMERGENT PROPERTIES (Figure 2 b,c,d)
-   ============================================================ */
-.emg-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
-.emg-head{text-align:center}
-.emg-head .title{font-size:23px;font-weight:700;letter-spacing:.4px;
-  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
-.emg-head .sub{font-size:12px;color:var(--muted);letter-spacing:.4px;margin-top:3px}
-.emg-row{display:flex;gap:18px;justify-content:center;align-items:stretch}
-.emg-card{background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);border-radius:14px;
-  padding:12px 14px 10px;display:flex;flex-direction:column;gap:6px;
-  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 34px rgba(124,140,248,.06);
-  opacity:0;transform:translateY(14px) scale(.98);
-  transition:opacity .5s cubic-bezier(.34,1.56,.64,1), transform .5s cubic-bezier(.34,1.56,.64,1)}
-.emg-card.in{opacity:1;transform:none}
-.emg-ctitle{font-size:12px;font-weight:600;color:#b7c2d8;font-family:'JetBrains Mono',monospace;text-align:center}
-.emg-card svg{display:block}
-.emg-img{display:block;width:auto;border-radius:8px;align-self:center}
-.violin{stroke-width:1.4;fill-opacity:.24;stroke-linejoin:round;
-  transform-box:fill-box;transform-origin:center;transform:scaleX(0);
-  transition:transform .55s cubic-bezier(.34,1.56,.64,1)}
-.violin.grown{transform:scaleX(1)}
-.vbox{fill:#0a0e1a;stroke:#c7d2e8;stroke-width:1.1;opacity:0;transition:opacity .4s ease}
-.vmed{stroke:#fff;stroke-width:2;opacity:0;transition:opacity .4s ease}
-.vbox.shown,.vmed.shown{opacity:.92}
-.vaxis{stroke:var(--border2);stroke-width:1;opacity:0;transition:opacity .4s ease}
-.vaxis.shown{opacity:1}
-.vtick{fill:var(--dim);font-size:8px;font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .4s ease}
-.vtick.shown{opacity:.7}
-.vlabel{fill:#b7c2d8;font-size:10px;font-weight:600;text-anchor:middle}
-.vgh{fill:#7f8aa3;font-size:9.5px;text-anchor:middle}
-.hm-cell{stroke:#0a0e1a;stroke-width:1;transform-box:fill-box;transform-origin:center;
-  opacity:0;transform:scale(.55);transition:opacity .3s ease, transform .35s cubic-bezier(.34,1.56,.64,1)}
-.hm-cell.pop{opacity:1;transform:scale(1)}
-.hm-rowlbl{fill:#c2cce0;font-size:9px;text-anchor:end;font-family:'Source Sans 3',sans-serif}
-.hm-collbl{fill:#8fa0bd;font-size:8.5px;text-anchor:middle;font-family:'JetBrains Mono',monospace}
-.hm-bar{fill:var(--opto);width:0;transition:width .55s cubic-bezier(.4,0,.2,1)}
-.hm-barval{fill:#c2cce0;font-size:8.5px;font-family:'JetBrains Mono',monospace;text-anchor:start}
-.hm-axtitle{fill:#8fa0bd;font-size:8.5px;text-anchor:middle;font-family:'JetBrains Mono',monospace}
 
 /* ============================================================
    OPTOVLAB CONTENT OVERRIDES
@@ -665,14 +587,12 @@ body{
 #brand-dock.docked .inst-dock span{width:24px;height:24px;border-radius:7px;font-size:8px}
 #brand-dock.docked .inst-dock b{font-size:11px}
 .nlogo{border:0;padding:0;background:none}.mol-img{object-fit:contain}
-.placeholder-note{color:#f6b95f!important}.paper-data-note{font:600 11.5px/1.4 'JetBrains Mono',monospace;color:var(--teal);letter-spacing:.25px}
+.paper-data-note{font:600 11.5px/1.4 'JetBrains Mono',monospace;color:var(--teal);letter-spacing:.25px}
 .score-note{margin-top:-3px;font:600 9.5px/1.3 'JetBrains Mono',monospace;color:#f0a8d1;letter-spacing:.15px}
 .result-stat{text-align:center;margin-top:4px}.result-stat b{display:block;font:700 33px/1.1 'JetBrains Mono',monospace;background:linear-gradient(90deg,#fff,var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}.result-stat span{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
 .mini-flow{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:22px 0 14px}.mini-flow span{min-width:76px;padding:10px 7px;border:1px solid var(--border2);border-radius:10px;background:#0c1221;text-align:center;font:700 15px/1.2 'JetBrains Mono',monospace;color:#dfe6ff}.mini-flow small{font-size:8px;color:var(--dim);text-transform:uppercase}.mini-flow i{color:var(--teal);font-size:19px;font-style:normal}
 .result-note{margin:auto 3px 4px;text-align:center;color:#9daac2;font:500 11px/1.5 'JetBrains Mono',monospace}
-.metric-chart{width:300px!important;height:135px!important;margin-top:12px;overflow:visible}.metric-chart .band{fill:rgba(124,140,248,.16);stroke:none}.metric-chart .line{fill:none;stroke:var(--opto);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.metric-chart .line.green{stroke:var(--teal)}.metric-chart .grid{fill:none;stroke:var(--border);stroke-width:1}.metric-chart circle{fill:var(--opto);stroke:#e7ebff;stroke-width:1}.metric-chart .dots-green circle{fill:var(--teal)}.metric-chart text{fill:var(--dim);font:9px 'JetBrains Mono',monospace}
-.figure-card{width:320px;height:410px;justify-content:flex-start;overflow:hidden}.figure-card.wide{width:500px}.figure-card .emg-img{width:100%;height:354px;object-fit:contain;background:#fff}.figure-card.wide .emg-img{height:354px}.figure-card .emg-ctitle{min-height:28px;display:grid;place-items:center}
-#stage-8 .rlbl{font-size:11px}
+.metric-chart{width:300px!important;height:135px!important;margin-top:12px;overflow:visible}.metric-chart .band{fill:rgba(124,140,248,.16);stroke:none;opacity:0;transform-box:fill-box;transform-origin:center bottom;transform:scaleY(.08);transition:opacity .55s ease,transform 1.05s cubic-bezier(.4,0,.2,1)}.metric-chart .line{fill:none;stroke:var(--opto);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.25s cubic-bezier(.4,0,.2,1)}.metric-chart .line.green{stroke:var(--teal)}.metric-chart .grid{fill:none;stroke:var(--border);stroke-width:1;opacity:.18;transition:opacity .55s ease}.metric-chart circle{fill:var(--opto);stroke:#e7ebff;stroke-width:1;opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0);transition:opacity .28s ease,transform .42s cubic-bezier(.34,1.56,.64,1)}.metric-chart .dots-green circle{fill:var(--teal)}.metric-chart text{fill:var(--dim);font:9px 'JetBrains Mono',monospace;opacity:.25;transition:opacity .45s ease}.metric-chart.live .band{opacity:1;transform:scaleY(1)}.metric-chart.live .line{stroke-dashoffset:0}.metric-chart.live .grid{opacity:1}.metric-chart.live circle{opacity:1;transform:scale(1)}.metric-chart.live text{opacity:1}.metric-chart.live .dots-green circle:nth-child(1){transition-delay:.18s}.metric-chart.live .dots-green circle:nth-child(2){transition-delay:.36s}.metric-chart.live .dots-green circle:nth-child(3){transition-delay:.54s}.metric-chart.live .dots-green circle:nth-child(4){transition-delay:.72s}.metric-chart.live .dots-green circle:nth-child(5){transition-delay:.90s}.metric-chart.live circle.focus{animation:chart-pulse 1.55s ease-in-out 1.2s infinite}@keyframes chart-pulse{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 7px var(--teal));transform:scale(1.32)}}
 .rd-cell .rd-ico img[src*="agent_"],.rd-cell .rd-ico img[src*="oled_device"]{filter:none;background:#fff;border-radius:4px}
 
 </style>
@@ -779,12 +699,18 @@ body{
             <div class="dr-panel dr-c3">
               <div class="dr-pt">Full-text corpus <span class="dr-pt-n">· <b id="dr-src-n">20,190</b></span></div>
               <div class="dr-domains" id="dr-domains"></div>
-              <div class="dr-pt dr-pt-find">Key findings</div>
-              <div class="dr-findings" id="dr-findings"></div>
+              <div class="dr-pt dr-pt-find">Results</div>
+              <div class="dr-results">
+                <div class="dr-pie-wrap">
+                  <svg class="dr-pie" id="dr-pie" viewBox="0 0 120 120" role="img" aria-label="Publication-source distribution for 21,580 candidate papers"></svg>
+                  <div class="dr-pie-total"><b>21,580</b><span>publications</span></div>
+                </div>
+                <div class="dr-pie-legend" id="dr-pie-legend"></div>
+              </div>
+              <div class="dr-pie-note">Publication-source composition · 2000–2025</div>
             </div>
           </div>
 
-          <div class="dr-done" id="dr-done"><span class="dr-boom">✦</span> Structured OLED database ready</div>
         </div>
       </section>
 
@@ -932,58 +858,19 @@ body{
             <div class="rp-card">
               <div class="rp-head"><span class="agent-icon has-img"><img src="imgs/agent_model.svg" alt=""></span><span class="rp-name">OLED-GAT Prediction</span></div>
               <div class="result-stat"><b>R² 0.81</b><span>held-out test performance</span></div>
-              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="Prediction interval example"><path class="band" d="M18 90C70 70 105 78 145 50s86-30 136-18v42c-57-12-91 2-132 18S70 104 18 112Z"/><path class="line" d="M18 101C69 83 104 88 147 65s83-30 134-14"/><circle cx="235" cy="55" r="5"/><text x="18" y="118">Q10</text><text x="265" y="118">Q90</text></svg>
+              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="Prediction interval example"><path class="band" d="M18 90C70 70 105 78 145 50s86-30 136-18v42c-57-12-91 2-132 18S70 104 18 112Z"/><path class="line" pathLength="1" d="M18 101C69 83 104 88 147 65s83-30 134-14"/><circle class="focus" cx="235" cy="55" r="5"/><text x="18" y="118">Q10</text><text x="265" y="118">Q90</text></svg>
               <p class="result-note">MAE 2.56 percentage points · Q10 / Q50 / Q90</p>
             </div>
             <div class="rp-card">
               <div class="rp-head"><span class="agent-icon has-img"><img src="imgs/oled_device.svg" alt=""></span><span class="rp-name">Experimental Optimization</span></div>
               <div class="result-stat"><b>26.5% EQE</b><span>best validated device · Round 4</span></div>
-              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="EQE improvement from baseline to round four"><path class="grid" d="M18 95H285M18 65H285M18 35H285"/><path class="line green" d="M18 94 82 78 146 65 210 28 274 29"/><g class="dots-green"><circle cx="18" cy="94" r="4"/><circle cx="82" cy="78" r="4"/><circle cx="146" cy="65" r="4"/><circle cx="210" cy="28" r="6"/><circle cx="274" cy="29" r="4"/></g><text x="18" y="116">18.6</text><text x="247" y="116">26.5</text></svg>
+              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="EQE improvement from baseline to round four"><path class="grid" d="M18 95H285M18 65H285M18 35H285"/><path class="line green" pathLength="1" d="M18 94 82 78 146 65 210 28 274 29"/><g class="dots-green"><circle cx="18" cy="94" r="4"/><circle cx="82" cy="78" r="4"/><circle cx="146" cy="65" r="4"/><circle class="focus" cx="210" cy="28" r="6"/><circle cx="274" cy="29" r="4"/></g><text x="18" y="116">18.6</text><text x="247" y="116">26.5</text></svg>
               <p class="result-note">18.6% → 26.5% · +42% relative improvement<br>Schematic trend; intermediate points not to scale<br>Static workflow: 22.4% after seven rounds</p>
             </div>
           </div>
           <div class="results-legend" id="results-legend"><span class="paper-data-note">Headline metrics are reported in the manuscript; mini-curves are schematic.</span></div>
         </div>
       </section>
-
-      <!-- STAGE 8: ILLUSTRATIVE CAPABILITY BENCHMARK -->
-      <section class="stage" id="stage-8">
-        <div class="agg-wrap">
-          <div class="agg-card">
-            <div class="agg-head">
-              <div class="title">System Capability Comparison</div>
-              <div class="sub placeholder-note">Illustrative capability profile · placeholder values (replace with benchmark data)</div>
-            </div>
-            <svg id="agg-radar" viewBox="0 0 500 372" preserveAspectRatio="xMidYMid meet"></svg>
-            <div class="agg-legend" id="agg-legend"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- STAGE 9: MANUSCRIPT FIGURES -->
-      <section class="stage" id="stage-9">
-        <div class="emg-wrap">
-          <div class="emg-head">
-            <div class="title">OptoVLab · System Overview</div>
-            <div class="sub">Selected manuscript figures · architecture, data mining, and device-level modeling</div>
-          </div>
-          <div class="emg-row">
-            <div class="emg-card figure-card wide" id="emg-b">
-              <div class="emg-ctitle">Figure 1 · Feedback-driven OptoVLab architecture</div>
-              <img class="emg-img" src="imgs/optovlab_figure1.svg" alt="OptoVLab architecture" />
-            </div>
-            <div class="emg-card figure-card" id="emg-c">
-              <div class="emg-ctitle">Figure 2 · OLED database construction</div>
-              <img class="emg-img" src="imgs/optovlab_figure2.jpg" alt="OLED literature mining and database analysis" />
-            </div>
-            <div class="emg-card figure-card" id="emg-d">
-              <div class="emg-ctitle">Figure 3 · Device-level OLED-GAT</div>
-              <img class="emg-img" src="imgs/optovlab_figure3.jpg" alt="OLED-GAT device-level modeling and prediction" />
-            </div>
-          </div>
-        </div>
-      </section>
-
 
     </div>
 
@@ -1019,8 +906,6 @@ const STEPS=[
   {n:5,lbl:'Scientific Critic Agent'},
   {n:6,lbl:'Feedback Loop'},
   {n:7,lbl:'Results'},
-  {n:8,lbl:'Benchmark'},
-  {n:9,lbl:'Overview'},
 ];
 
 const SYNTH_JSON =
@@ -1147,12 +1032,15 @@ const DOMAINS=[
   {name:'OLED device records', count:19175},
 ];
 const DR_TOTAL=19175;
-const FINDINGS=[
-  {text:'Unified schema links material identity, device architecture, fabrication conditions, and performance', cites:'SCHEMA'},
-  {text:'Each record preserves document and local evidence provenance for scientific audit', cites:'TRACE'},
-  {text:'Multilayer records support device-level rather than isolated-molecule modeling', cites:'DEVICE'},
-  {text:'Validated data expand the database after each experimental feedback batch', cites:'LOOP'},
+const PUBLISHER_RESULTS=[
+  {name:'American Chemical Society',value:15.8,color:'#ff7b7b'},
+  {name:'Wiley',value:18.0,color:'#ffb47f'},
+  {name:'Royal Society of Chemistry',value:14.1,color:'#9fc8dc'},
+  {name:'Springer',value:5.4,color:'#59c4d5'},
+  {name:'Elsevier',value:24.2,color:'#f7cb55'},
+  {name:'Others',value:22.5,color:'#617fdb'},
 ];
+const PIE_CIRCUMFERENCE=2*Math.PI*44;
 
 /* ============================================================
    3. BUILD STATIC UI (stepper, dots, scorecard, network)
@@ -1208,10 +1096,20 @@ function buildResearch(){
     '<span class="dv" id="dr-dv-'+i+'">0</span></div>'+
     '<div class="dr-dom-bar"><span class="f" id="dr-df-'+i+'"></span></div></div>').join('')+
     '<div class="dr-dom-more" id="dr-dom-more">2000–2025 coverage · 11 domain-specific tools</div>';
-  // findings
-  document.getElementById('dr-findings').innerHTML=FINDINGS.map((f,i)=>
-    '<div class="dr-find" id="dr-find-'+i+'">'+f.text+
-    '<span class="tok-cite">'+f.cites+'</span></div>').join('');
+  // animated publisher-source donut chart reconstructed from the supplied result figure
+  const pie=document.getElementById('dr-pie');
+  let offset=0;
+  pie.innerHTML='<circle class="dr-pie-track" cx="60" cy="60" r="44" pathLength="100"></circle>'+
+    PUBLISHER_RESULTS.map((item,i)=>{
+      const circle='<circle class="dr-pie-seg" id="dr-pie-seg-'+i+'" cx="60" cy="60" r="44" '+
+        'stroke="'+item.color+'" stroke-dashoffset="'+(-offset*PIE_CIRCUMFERENCE/100).toFixed(2)+'"></circle>';
+      offset+=item.value;
+      return circle;
+    }).join('');
+  document.getElementById('dr-pie-legend').innerHTML=PUBLISHER_RESULTS.map((item,i)=>
+    '<div class="dr-pie-item" id="dr-pie-item-'+i+'">'+
+    '<span class="dr-pie-dot" style="color:'+item.color+';background:'+item.color+'"></span>'+
+    '<span class="dr-pie-name">'+item.name+'</span><span class="dr-pie-value">'+item.value.toFixed(1)+'%</span></div>').join('');
 }
 buildResearch();
 
@@ -1333,151 +1231,6 @@ function buildNetwork(){
 buildNetwork();
 
 /* ============================================================
-   4b. RESULTS RADARS (Figure 2a) — build once, animate in stage 7
-   ============================================================ */
-const RADAR_DATA={
-  axes:['Literature|Grounding','Extraction|Fidelity','Schema|Compliance',
-        'Device|Reasoning','Uncertainty|Awareness','Candidate|Ranking',
-        'Physical|Plausibility','Experimental|Efficiency','Feedback|Adaptation'],
-  labels:[], colors:[], zOrder:[], models:[]
-};
-const RADAR_CX=190, RADAR_CY=150, RADAR_R=104, RADAR_N=9;
-function radarPoint(cx,cy,R,k,v){const a=k*(2*Math.PI/RADAR_N),r=R*v/10;return {x:cx+r*Math.sin(a),y:cy-r*Math.cos(a)};}
-function ptsStr(pts){return pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');}
-const RADAR_PANELS=[];
-const mkEl=(t,c)=>{const e=document.createElementNS(SVGNS,t);if(c)e.setAttribute('class',c);return e;};
-// draw the shared grid (rings+spokes+ticks) + 9 two-line axis labels into an svg
-function drawRadarFrame(svg,cx,cy,R){
-  const N=RADAR_N;
-  const gGrid=mkEl('g','rgrid-group');
-  [2,4,6,8,10].forEach(rv=>{
-    const poly=mkEl('polygon','rgrid'+(rv===10?' router':''));
-    poly.setAttribute('points',ptsStr(Array.from({length:N},(_,k)=>radarPoint(cx,cy,R,k,rv))));
-    gGrid.appendChild(poly);
-  });
-  for(let k=0;k<N;k++){
-    const p=radarPoint(cx,cy,R,k,10), ln=mkEl('line','rspoke');
-    ln.setAttribute('x1',cx);ln.setAttribute('y1',cy);
-    ln.setAttribute('x2',p.x.toFixed(1));ln.setAttribute('y2',p.y.toFixed(1));
-    gGrid.appendChild(ln);
-  }
-  [2,4,6,8].forEach(tv=>{
-    const t=mkEl('text','rtick');
-    t.setAttribute('x',cx+6);t.setAttribute('y',(cy-R*tv/10+3).toFixed(1));
-    t.setAttribute('text-anchor','start');t.textContent=tv;
-    gGrid.appendChild(t);
-  });
-  svg.appendChild(gGrid);
-  const gLab=mkEl('g','rlabel-group');
-  for(let k=0;k<N;k++){
-    const a=k*(2*Math.PI/N), s=Math.sin(a), c=Math.cos(a), p=radarPoint(cx,cy,R,k,10);
-    const t=mkEl('text','rlbl'); let anchor='middle', lx=p.x, ly;
-    if(s>0.2){anchor='start';lx=p.x+10;}
-    else if(s<-0.2){anchor='end';lx=p.x-10;}
-    const parts=RADAR_DATA.axes[k].split('|');
-    if(anchor==='middle') ly = (c>0 ? p.y-13-11*(parts.length-1) : p.y+14);
-    else ly = p.y - (parts.length>1?4:0);
-    t.setAttribute('text-anchor',anchor);
-    t.setAttribute('x',lx.toFixed(1));t.setAttribute('y',ly.toFixed(1));
-    parts.forEach((w,i)=>{
-      const ts=document.createElementNS(SVGNS,'tspan');
-      ts.setAttribute('x',lx.toFixed(1));ts.setAttribute('dy',i===0?'0':'11');
-      ts.textContent=w;t.appendChild(ts);
-    });
-    gLab.appendChild(t);
-  }
-  svg.appendChild(gLab);
-}
-// add one profile polygon (collapsed at center) + its vertex dots; returns handles
-function addProfile(svg,cx,cy,R,values,color){
-  const N=RADAR_N;
-  const target=values.map((v,k)=>radarPoint(cx,cy,R,k,v));
-  const collapsed=ptsStr(Array.from({length:N},()=>({x:cx,y:cy})));
-  const poly=mkEl('polygon','rprof');
-  poly.setAttribute('points',collapsed);
-  poly.style.stroke=color; poly.style.fill=color;   // inline style: SVG attrs don't resolve var()
-  svg.appendChild(poly);
-  const dots=target.map(pt=>{
-    const d=mkEl('circle','rdot');
-    d.setAttribute('cx',pt.x.toFixed(1));d.setAttribute('cy',pt.y.toFixed(1));d.setAttribute('r',2.6);
-    d.style.fill=color; svg.appendChild(d); return d;
-  });
-  return {poly,dots,target};
-}
-function buildRadars(){
-  if(RADAR_DATA.models.length===0)return;
-  RADAR_DATA.models.forEach((m,mi)=>{
-    const svg=document.getElementById('radar-'+mi);
-    if(!svg)return;
-    svg.innerHTML='';
-    drawRadarFrame(svg,RADAR_CX,RADAR_CY,RADAR_R);
-    const P={cx:RADAR_CX,cy:RADAR_CY,prof:[],dots:[],targets:[]};
-    RADAR_DATA.zOrder.forEach(pi=>{
-      const {poly,dots,target}=addProfile(svg,RADAR_CX,RADAR_CY,RADAR_R,m.profiles[pi],RADAR_DATA.colors[pi]);
-      P.prof[pi]=poly; P.dots[pi]=dots; P.targets[pi]=target;
-    });
-    RADAR_PANELS[mi]=P;
-  });
-  // ---- shared legend ----
-  const el=document.getElementById('results-legend');
-  if(el){
-    el.innerHTML='';
-    RADAR_DATA.labels.forEach((lb,pi)=>{
-      const item=document.createElement('div');item.className='rlgd-item';item.id='rlgd-'+pi;
-      const sw=document.createElement('span');sw.className='rlgd-sw';
-      sw.style.color=RADAR_DATA.colors[pi];
-      sw.style.borderColor=RADAR_DATA.colors[pi];
-      sw.style.background='color-mix(in srgb, '+RADAR_DATA.colors[pi]+' 16%, transparent)';
-      const tx=document.createElement('span');tx.textContent=lb;
-      item.appendChild(sw);item.appendChild(tx);el.appendChild(item);
-    });
-  }
-}
-buildRadars();
-
-/* ============================================================
-   4c. ILLUSTRATIVE CAPABILITY RADAR — placeholder values
-   ============================================================ */
-const AGG_DATA={
-  // Placeholder values only; replace after a formal benchmark is completed.
-  models:[
-    {name:'Static workflow',       icon:'imgs/agent_decision.svg',color:'var(--surface)', values:[7.0,6.4,6.8,5.2,3.0,5.3,6.1,4.2,2.0]},
-    {name:'Tool-augmented agents', icon:'imgs/agent_model.svg',   color:'var(--hydro)',   values:[8.3,8.0,8.2,7.6,6.9,7.5,7.8,6.7,5.8]},
-    {name:'Full OptoVLab',         icon:'imgs/optovlab_favicon.svg',color:'var(--bio)',   values:[9.3,9.0,9.2,8.8,8.6,9.1,9.0,9.3,9.5]},
-  ],
-  revealOrder:[0,1,2],
-  zOrder:[2,1,0],
-};
-const AGG_CX=250, AGG_CY=192, AGG_R=150;
-let AGG_PANEL=null;
-function buildAggRadar(){
-  const svg=document.getElementById('agg-radar'); if(!svg)return;
-  svg.innerHTML='';
-  drawRadarFrame(svg,AGG_CX,AGG_CY,AGG_R);
-  const P={cx:AGG_CX,cy:AGG_CY,prof:[],dots:[],targets:[]};
-  AGG_DATA.zOrder.forEach(pi=>{
-    const m=AGG_DATA.models[pi];
-    const {poly,dots,target}=addProfile(svg,AGG_CX,AGG_CY,AGG_R,m.values,m.color);
-    P.prof[pi]=poly; P.dots[pi]=dots; P.targets[pi]=target;
-  });
-  AGG_PANEL=P;
-  const el=document.getElementById('agg-legend');
-  if(el){
-    el.innerHTML='';
-    AGG_DATA.models.forEach((m,pi)=>{
-      const item=document.createElement('div');item.className='rlgd-item';item.id='agg-lgd-'+pi;
-      item.innerHTML='<span class="agent-icon has-img agg-ico"><img src="'+m.icon+'" alt="'+m.name+'"></span>'+
-                     '<span class="rlgd-sw"></span><span class="agg-lgd-name">'+m.name+'</span>';
-      const sw=item.querySelector('.rlgd-sw');
-      sw.style.color=m.color; sw.style.borderColor=m.color;
-      sw.style.background='color-mix(in srgb, '+m.color+' 16%, transparent)';
-      el.appendChild(item);
-    });
-  }
-}
-buildAggRadar();
-
-/* ============================================================
    5. AUTOREGRESSIVE TYPING ENGINE
    ============================================================ */
 let speed=1, runId=0, paused=false;
@@ -1585,9 +1338,9 @@ function resetAll(){
   document.getElementById('dr-feed-scroll').style.transform='none';
   document.getElementById('dr-feed-n').textContent='· 0 batches';
   DOMAINS.forEach((d,i)=>{document.getElementById('dr-df-'+i).style.width='0';document.getElementById('dr-dv-'+i).textContent='0';});
-  document.querySelectorAll('.dr-find').forEach(e=>e.classList.remove('show'));
+  document.querySelectorAll('.dr-pie-seg').forEach(e=>{e.classList.remove('live');e.style.strokeDasharray='0 '+PIE_CIRCUMFERENCE;});
+  document.querySelectorAll('.dr-pie-item').forEach(e=>e.classList.remove('live'));
   document.getElementById('dr-count').textContent='0';
-  document.getElementById('dr-done').classList.remove('show');
   const ds=document.getElementById('dr-status');ds.classList.remove('done');ds.innerHTML='<span class="spin"></span> extracting…';
   document.getElementById('report-doc').innerHTML='';
   document.getElementById('synth-code').innerHTML='';
@@ -1601,35 +1354,9 @@ function resetAll(){
   document.getElementById('rxn6-mech').innerHTML='';
   document.getElementById('rxn6-reason').innerHTML='';
   document.getElementById('rd-scroll').scrollTop=0;
-  // ---- stage 7 results radars ----
+  // ---- stage 7 results ----
   document.querySelectorAll('#stage-7 .rp-card').forEach(c=>c.classList.remove('in'));
-  document.querySelectorAll('#stage-7 .rgrid-group').forEach(g=>g.classList.remove('drawn'));
-  document.querySelectorAll('#stage-7 .rlabel-group').forEach(g=>g.classList.remove('shown'));
-  document.querySelectorAll('#stage-7 .rdot').forEach(d=>d.classList.remove('pop'));
-  document.querySelectorAll('#results-legend .rlgd-item').forEach(l=>l.classList.remove('lit'));
-  if(typeof RADAR_PANELS!=='undefined'){
-    RADAR_PANELS.forEach(P=>{
-      const col=ptsStr(Array.from({length:RADAR_N},()=>({x:P.cx,y:P.cy})));
-      P.prof.forEach(poly=>poly.setAttribute('points',col));
-    });
-  }
-  // ---- stage 8 overview radar ----
-  document.querySelectorAll('#stage-8 .agg-card').forEach(c=>c.classList.remove('in'));
-  document.querySelectorAll('#agg-radar .rgrid-group').forEach(g=>g.classList.remove('drawn'));
-  document.querySelectorAll('#agg-radar .rlabel-group').forEach(g=>g.classList.remove('shown'));
-  document.querySelectorAll('#agg-radar .rdot').forEach(d=>d.classList.remove('pop'));
-  document.querySelectorAll('#agg-legend .rlgd-item').forEach(l=>l.classList.remove('lit'));
-  if(typeof AGG_PANEL!=='undefined' && AGG_PANEL){
-    const aggCol=ptsStr(Array.from({length:RADAR_N},()=>({x:AGG_PANEL.cx,y:AGG_PANEL.cy})));
-    AGG_PANEL.prof.forEach(poly=>poly.setAttribute('points',aggCol));
-  }
-  // ---- stage 9 emergent properties ----
-  document.querySelectorAll('#stage-9 .emg-card').forEach(c=>c.classList.remove('in'));
-  document.querySelectorAll('#stage-9 .violin').forEach(v=>v.classList.remove('grown'));
-  document.querySelectorAll('#stage-9 .vbox,#stage-9 .vmed,#stage-9 .vaxis,#stage-9 .vtick').forEach(e=>e.classList.remove('shown'));
-  document.querySelectorAll('#stage-9 .hm-cell').forEach(c=>c.classList.remove('pop'));
-  document.querySelectorAll('#stage-9 .hm-bar').forEach(b=>{b.style.width='0';});
-  document.querySelectorAll('#stage-9 .hm-barval').forEach(t=>{t.textContent='';});
+  document.querySelectorAll('#stage-7 .metric-chart').forEach(chart=>chart.classList.remove('live'));
 
 }
 
@@ -1724,16 +1451,19 @@ async function stageResearch(my){
   }
   document.getElementById('dr-dom-more').classList.add('show');
   await sleep(320);
-  // (e) synthesized key findings stream in with citation badges
-  for(let i=0;i<FINDINGS.length;i++){
+  // (e) publication-source results assemble clockwise while the legend resolves
+  for(let i=0;i<PUBLISHER_RESULTS.length;i++){
     if(my!==runId)return;
-    document.getElementById('dr-find-'+i).classList.add('show');
-    await sleep(600);
+    const seg=document.getElementById('dr-pie-seg-'+i);
+    seg.classList.add('live');
+    const arc=PIE_CIRCUMFERENCE*PUBLISHER_RESULTS[i].value/100;
+    seg.style.strokeDasharray=arc+' '+(PIE_CIRCUMFERENCE-arc);
+    document.getElementById('dr-pie-item-'+i).classList.add('live');
+    await sleep(210);
   }
   if(my!==runId)return;
   // (f) structured database ready
   const ds=document.getElementById('dr-status');ds.classList.add('done');ds.innerHTML='✓ database ready';
-  document.getElementById('dr-done').classList.add('show');
   await sleep(1600);
 }
 async function stageReport(my){
@@ -1840,55 +1570,19 @@ async function stageNetwork(my){
 /* ============================================================
    8. TIMELINE LOOP + CONTROLS
    ============================================================ */
-/* ---- radar animation helpers ---- */
-function backOut(t){const c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);}
-async function growPolygon(poly,cx,cy,pts,dur,my){
-  const N=24;
-  for(let i=1;i<=N;i++){
-    if(my!==runId)return;
-    const k=backOut(i/N);
-    poly.setAttribute('points',pts.map(p=>(cx+(p.x-cx)*k).toFixed(1)+','+(cy+(p.y-cy)*k).toFixed(1)).join(' '));
-    await sleep(dur/N);
-  }
-  if(my!==runId)return;
-  poly.setAttribute('points',ptsStr(pts));   // land exact
-}
 async function stageResults(my){
   setStage(7);
   await sleep(360); if(my!==runId)return;
-  // Results cards pop in left-to-right; their mini charts are static manuscript summaries.
+  // Results cards pop in left-to-right, then the interval and optimization traces draw live.
   for(const c of document.querySelectorAll('#stage-7 .rp-card')){ if(my!==runId)return; c.classList.add('in'); await sleep(150); }
-  await sleep(4200);
-}
-async function stageOverview(my){
-  setStage(8);
-  await sleep(360); if(my!==runId)return;
-  // (a) hero card pops in
-  const card=document.querySelector('#stage-8 .agg-card'); if(card)card.classList.add('in');
   await sleep(260); if(my!==runId)return;
-  // (b) grid + spokes draw in, then axis labels fade in
-  const gg=document.querySelector('#agg-radar .rgrid-group'); if(gg)gg.classList.add('drawn');
-  await sleep(300); if(my!==runId)return;
-  const gl=document.querySelector('#agg-radar .rlabel-group'); if(gl)gl.classList.add('shown');
-  await sleep(320); if(my!==runId)return;
-  // (c) grow the 3 model profiles weakest -> best, lighting each legend entry as it lands
-  for(const pi of AGG_DATA.revealOrder){
-    if(my!==runId)return;
-    await growPolygon(AGG_PANEL.prof[pi],AGG_PANEL.cx,AGG_PANEL.cy,AGG_PANEL.targets[pi],680,my);
-    if(my!==runId)return;
-    AGG_PANEL.dots[pi].forEach(d=>d.classList.add('pop'));
-    const lg=document.getElementById('agg-lgd-'+pi); if(lg)lg.classList.add('lit');
-    await sleep(240);
+  for(const chart of document.querySelectorAll('#stage-7 .metric-chart')){
+    chart.classList.add('live');
+    await sleep(1050); if(my!==runId)return;
   }
-  // (d) hold before the timeline loops back to the cover
-  await sleep(3200);
+  await sleep(2900);
 }
-async function stageEmergent(my){
-  setStage(9); await sleep(360); if(my!==runId)return;
-  for(const c of [document.getElementById('emg-b'),document.getElementById('emg-c'),document.getElementById('emg-d')]){ if(my!==runId)return; c.classList.add('in'); await sleep(160); }
-  await sleep(4200);
-}
-const STAGE_FNS=[stageCover,stageInput,stageResearch,stageReport,stageSynth,stageCritic,stageNetwork,stageResults,stageOverview,stageEmergent];
+const STAGE_FNS=[stageCover,stageInput,stageResearch,stageReport,stageSynth,stageCritic,stageNetwork,stageResults];
 async function runTimeline(startIdx=0){
   const my=++runId;
   let idx=startIdx;
@@ -1902,7 +1596,7 @@ async function runTimeline(startIdx=0){
     idx=0;   // after the first (possibly partial) pass, always loop from the cover
   }
 }
-// jump straight to a pipeline stage (1..6) when its stepper item is clicked
+// jump straight to a pipeline stage (1..7) when its stepper item is clicked
 function skipToStage(n){
   if(paused)setPaused(false);
   runTimeline(n);

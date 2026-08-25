@@ -6,7 +6,7 @@ agentic virtual laboratory for organic optoelectronic research.
 - Website: <https://optovlab.github.io/>
 - Research platform source: <https://github.com/YajingSun-Group/OptoVLab>
 
-The site presents the manuscript overview and a deterministic nine-stage
+The site presents the manuscript overview and a deterministic seven-stage
 animation covering literature mining, device-level OLED graph modeling,
 scientific critique, experimental planning, and feedback-driven optimization.
 
@@ -41,8 +41,7 @@ Pushes to `main` are validated and deployed through GitHub Actions. The Pages
 artifact contains only the site documents and media listed above.
 
 Headline dataset, model, and experimental values shown on the site are reported
-manuscript results. The Stage 8 capability radar is explicitly illustrative and
-is not presented as benchmark data.
+manuscript results; schematic mini-curves are labeled directly in the demo.
 
 ## Research Team
 

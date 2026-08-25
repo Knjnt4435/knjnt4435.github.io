@@ -21,6 +21,7 @@ REQUIRED = (
     ROOT / "sitemap.xml",
     ROOT / "demo/imgs/169951-842348732_medium.mp4",
     ROOT / "demo/imgs/optovlab_logo.svg",
+    ROOT / "demo/imgs/optovlab_architecture.png",
     ROOT / "demo/imgs/optovlab_figure1.svg",
     ROOT / "demo/imgs/optovlab_figure2.jpg",
     ROOT / "demo/imgs/optovlab_figure3.jpg",
