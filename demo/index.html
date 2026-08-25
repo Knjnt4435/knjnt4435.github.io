@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OptoVLab · Interactive Research Workflow</title>
+<meta name="description" content="Interactive demonstration of OptoVLab, a self-improving multi-agent virtual laboratory for organic optoelectronic research." />
+<link rel="canonical" href="https://optovlab.github.io/demo/" />
+<link rel="icon" href="imgs/optovlab_favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   OptoVLab — animated research workflow demo
+   Single file. Dark cinematic theme. Auto-looping.
+   ============================================================ */
+:root{
+  /* base */
+  --bg0:#0A0E1A; --bg1:#0B1020;
+  --panel:#121829; --panel2:#0E1422; --border:#243049; --border2:#33415e;
+  --text:#E6ECF7; --muted:#8FA0BD; --dim:#5d6b86;
+  /* accents */
+  --opto:#7C8CF8; --teal:#2DD4BF; --hydro:#3B82F6; --surface:#F97316;
+  --bio:#22C55E; --crit:#D85AA5; --gold:#FCD34D; --sp:#E27BB8;
+  /* json syntax */
+  --j-key:#7DD3FC; --j-str:#86EFAC; --j-num:#FCD34D; --j-bool:#F0ABFC; --j-punct:#8295b5;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg0)}
+body{
+  font-family:'Source Sans 3','Helvetica Neue',sans-serif;
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(1200px 700px at 50% 18%, #131a30 0%, var(--bg1) 45%, var(--bg0) 100%);
+}
+
+/* ---- fit-to-viewport scaled stage (never scrolls) ---- */
+#viewport{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;background:rgba(10,14,26,.65)}
+#stage{
+  position:relative;width:1280px;height:720px;transform-origin:center center;
+  background:transparent;
+  border:1px solid var(--border);border-radius:20px;
+  box-shadow:0 40px 120px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+  overflow:hidden;
+}
+#bg-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none}
+
+/* ---- top chrome: logo + pipeline stepper ---- */
+#topbar{
+  position:absolute;top:0;left:0;right:0;height:84px;z-index:5;
+  display:flex;align-items:center;gap:22px;padding:0 28px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  opacity:1;visibility:visible;transition:opacity .55s ease;
+}
+#topbar.hide{opacity:0;visibility:hidden;pointer-events:none}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.logo-ph{
+  width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  border:1.5px dashed var(--border2);color:var(--opto);font-weight:700;font-size:10px;
+  letter-spacing:.5px;text-align:center;line-height:1.05;
+  background:radial-gradient(circle at 50% 35%, rgba(124,140,248,.25), transparent 70%);
+  box-shadow:0 0 22px rgba(124,140,248,.25);
+}
+.brand .name{font-size:21px;font-weight:700;letter-spacing:3px;
+  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .sub{font-size:10.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.brand-logo{height:44px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(124,140,248,.25))}
+
+#stepper{display:flex;align-items:center;gap:0;flex:1;justify-content:space-between}
+.step{display:flex;align-items:center;gap:9px;opacity:.45;transition:opacity .4s}
+.step .num{
+  width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;border:1.5px solid var(--border2);color:var(--muted);
+  background:var(--panel2);transition:all .4s;flex-shrink:0;
+}
+.step .lbl{font-size:15px;color:var(--muted);white-space:nowrap;font-weight:600;letter-spacing:.2px;transition:color .4s}
+.bar{flex:1 1 auto;min-width:12px;height:3px;background:var(--border2);margin:0 4px;border-radius:2px;transition:background .4s}
+.step.done{opacity:.9}
+.step.done .num{border-color:var(--teal);color:#04201b;background:var(--teal);box-shadow:0 0 12px rgba(45,212,191,.5)}
+.step.active{opacity:1}
+.step.active .num{border-color:var(--opto);color:#fff;background:var(--opto);box-shadow:0 0 18px rgba(124,140,248,.7)}
+.step.active .lbl{color:#fff}
+.step.done + .bar{background:var(--teal);box-shadow:0 0 10px rgba(45,212,191,.45)}
+.step{cursor:pointer}
+.step:hover .num{border-color:var(--opto)}
+.step:hover .lbl{color:#e6ecf7}
+
+/* ---- stage area ---- */
+#stage-area{position:absolute;top:62px;bottom:72px;left:0;right:0;z-index:4}
+.stage{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:34px;
+  padding:26px 46px;opacity:0;visibility:hidden;transform:translateY(16px) scale(.99);
+  transition:opacity .55s ease, transform .55s ease;pointer-events:none;
+}
+.stage.active{opacity:1;visibility:visible;transform:none}
+
+/* generic identity column (left) */
+.idcol{width:330px;flex-shrink:0;display:flex;flex-direction:column;gap:11px}
+.agent-head{display:flex;align-items:center;gap:13px}
+.agent-icon{
+  width:48px;height:48px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;text-align:center;line-height:1.05;letter-spacing:.3px;
+  border:1.5px dashed var(--border2);color:var(--muted);background:var(--panel2);
+}
+/* icon chip: light rounded card so full-color AND monochrome icons read on the dark theme */
+.agent-icon.has-img{background:#fff;border:1px solid rgba(255,255,255,.18);padding:6px}
+.agent-icon.has-img img{width:100%;height:100%;object-fit:contain;display:block}
+.agent-name{font-size:22px;font-weight:700;letter-spacing:.3px}
+.agent-tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font-size:12px;font-weight:600;padding:7px 13px;border-radius:20px;color:var(--muted);
+  border:1px solid var(--border);background:var(--panel2);opacity:.35;transform:translateX(-6px);
+  transition:all .45s ease;
+}
+.chip.lit{opacity:1;transform:none;color:#fff}
+.chip.c-opto.lit{border-color:var(--opto);color:#cdd5ff;box-shadow:0 0 16px rgba(124,140,248,.3)}
+.chip.c-crit.lit{border-color:var(--crit);color:#ffd5d5;box-shadow:0 0 16px rgba(239,68,68,.25)}
+
+/* sub-step list (engines) */
+.substeps{display:flex;flex-direction:column;gap:9px}
+.substep{
+  display:flex;align-items:center;gap:11px;font-size:13px;color:var(--muted);
+  padding:9px 13px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);
+  opacity:.3;transform:translateX(-8px);transition:all .45s ease;
+}
+.substep .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:all .45s}
+.substep.lit{opacity:1;transform:none;color:#dfe7f7;border-color:var(--border2)}
+.substep.lit .dot{background:var(--teal);box-shadow:0 0 10px var(--teal)}
+
+/* code / document panel (editor window) */
+.win{
+  width:740px;flex-shrink:0;height:430px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#0c1120,#0a0e1a);border:1px solid var(--border2);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 40px rgba(124,140,248,.10);
+}
+.win.crit{box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 40px rgba(239,68,68,.12)}
+.win-bar{
+  height:38px;flex-shrink:0;display:flex;align-items:center;gap:9px;padding:0 14px;
+  background:#11182a;border-bottom:1px solid var(--border);
+}
+.tl{width:11px;height:11px;border-radius:50%}
+.tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+.win-title{margin-left:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+.win-stream{font-size:10px;color:var(--teal);margin-left:auto;display:flex;align-items:center;gap:6px;letter-spacing:.5px}
+.win-stream .pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:blink 1s infinite}
+.code{
+  flex:1;overflow:hidden;padding:16px 18px;font-family:'JetBrains Mono',monospace;
+  font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:break-word;color:var(--text);
+}
+.doc{
+  flex:1;overflow:hidden;padding:20px 22px;font-family:'Source Sans 3',sans-serif;
+  font-size:14.5px;line-height:1.7;white-space:pre-wrap;color:#cdd6e6;
+}
+
+/* tokens */
+.tok-key{color:var(--j-key)}
+.tok-string{color:var(--j-str)}
+.tok-number{color:var(--j-num)}
+.tok-bool{color:var(--j-bool)}
+.tok-punct{color:var(--j-punct)}
+.tok-prose{color:#cdd6e6}
+.tok-cite{color:var(--opto);font-weight:700;background:rgba(124,140,248,.16);padding:1px 5px;border-radius:5px;font-size:.85em;vertical-align:.08em}
+.tok-refnum{color:var(--opto);font-weight:700}
+.tok-ref{color:var(--muted);font-style:italic}
+.glow{color:#fff !important;text-shadow:0 0 10px currentColor, 0 0 18px var(--opto);transition:none}
+.caret{display:inline-block;width:8px;height:1.05em;vertical-align:-2px;margin-left:1px;
+  background:var(--opto);box-shadow:0 0 8px var(--opto);animation:blink .9s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---- stage 1: input ---- */
+.input-card{
+  position:relative;z-index:1;
+  width:640px;background:linear-gradient(180deg,#121a2e,#0d1322);
+  border:1px solid rgba(124,140,248,.22);border-radius:22px;padding:34px 42px;
+  box-shadow:0 30px 72px rgba(0,0,0,.55),0 0 64px rgba(124,140,248,.16),
+    inset 0 1px 0 rgba(255,255,255,.06),inset 0 0 0 1px rgba(124,140,248,.08);
+}
+.input-top{display:flex;align-items:center;gap:13px;margin-bottom:22px;
+  padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.tt-ico{width:42px;height:42px;border-radius:12px;flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:16px}
+.tt-ico.has-img{background:#eef2ff;border:1px solid rgba(255,255,255,.25);padding:7px}
+.tt-ico.has-img img{width:100%;height:100%;object-fit:contain;display:block}
+.input-top .t{font-size:16px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--opto)}
+.input-body{display:flex;gap:30px;align-items:center}
+.instr{flex:1;min-width:0}
+.instr .lab{font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.instr .txt{font-size:23px;line-height:1.55;color:#eef2fb;font-weight:400;min-height:170px}
+.instr .hl{color:var(--teal);font-weight:700}
+#instr-txt .tok-prose{color:#eef2fb}
+.tok-hl{color:var(--teal);font-weight:700}
+.target{flex-shrink:0;text-align:center}
+.target .lab{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.mol-ph{
+  position:relative;width:160px;height:120px;border-radius:14px;border:1.5px dashed var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:radial-gradient(circle at 50% 40%, rgba(45,212,191,.12), transparent 70%);
+  color:var(--muted);font-size:14px;text-align:center;padding:8px;
+}
+.mol-ph.has-img{width:auto;height:auto;border-style:solid;border-color:rgba(45,212,191,.30);
+  background:#0d1322;gap:7px;padding:16px 16px 14px}
+.mol-ph.has-img::before{content:"";position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  width:184px;height:184px;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,rgba(45,212,191,.30),transparent 66%);filter:blur(6px)}
+.mol-img{position:relative;z-index:1;width:156px;height:156px;border-radius:12px;background:#fff;padding:8px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.12),0 10px 26px rgba(0,0,0,.45);
+  animation:molBreathe 4.6s ease-in-out infinite}
+.mol-ph .big{position:relative;z-index:1;font-size:20px;font-weight:700;color:var(--teal);letter-spacing:.3px}
+.mol-ph .sub{position:relative;z-index:1;font-size:14px;color:var(--muted)}
+/* target reticle corners */
+.ret{position:absolute;width:18px;height:18px;border:2px solid var(--teal);opacity:0;z-index:2;
+  transform:scale(.5);transition:opacity .5s ease .15s,transform .5s ease .15s;pointer-events:none}
+.ret.tl{top:9px;left:9px;border-right:0;border-bottom:0;border-radius:5px 0 0 0}
+.ret.tr{top:9px;right:9px;border-left:0;border-bottom:0;border-radius:0 5px 0 0}
+.ret.bl{bottom:9px;left:9px;border-right:0;border-top:0;border-radius:0 0 0 5px}
+.ret.br{bottom:9px;right:9px;border-left:0;border-top:0;border-radius:0 0 5px 0}
+.target.s1-in.on .ret{opacity:.9;transform:scale(1)}
+.flow-arrow{font-size:38px;color:var(--opto)}
+.flow-arrow.s1-in.on{animation:floatArrow 1.7s ease-in-out infinite}
+@keyframes floatArrow{0%,100%{transform:translateX(0)}50%{transform:translateX(9px)}}
+@keyframes molBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* stage-1 staged reveal */
+.s1-in{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease}
+.s1-in.on{opacity:1;transform:none}
+.target.s1-in{transform:translateY(12px) scale(.9)}
+.target.s1-in.on{transform:none}
+
+/* ---- stage 2: engines ---- */
+.engines{display:flex;gap:30px;align-items:stretch;justify-content:center;width:100%}
+.engine{
+  width:380px;background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);
+  border-radius:16px;padding:22px 24px;box-shadow:0 18px 50px rgba(0,0,0,.4);
+}
+.engine.disc{box-shadow:0 18px 50px rgba(0,0,0,.4),0 0 34px rgba(59,130,246,.14)}
+.engine.deep{box-shadow:0 18px 50px rgba(0,0,0,.4),0 0 34px rgba(45,212,191,.14)}
+.engine h3{font-size:17px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:11px}
+.engine .etag{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;margin-left:59px;margin-top:-4px}
+.between{display:flex;align-items:center;color:var(--opto);font-size:26px;opacity:.6}
+
+/* stage 2: live data-mining dashboard fills the whole stage */
+#stage-2{align-items:stretch;justify-content:flex-start;padding:44px 40px 14px}   /* extra top pad clears the floating top-left controls */
+.dr{width:100%;display:flex;flex-direction:column;gap:11px}
+
+/* header row */
+.dr-head{display:flex;align-items:center;gap:13px}
+.dr-ico{width:46px;height:46px}
+.dr-ico.has-img{border-color:rgba(45,212,191,.5);box-shadow:0 0 16px rgba(45,212,191,.25)}
+.dr-title{font-size:21px;font-weight:700;letter-spacing:.3px}
+.dr-sub{font-size:12.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.dr-status{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;
+  color:var(--teal);padding:8px 14px;border-radius:20px;border:1px solid rgba(45,212,191,.3);
+  background:rgba(45,212,191,.07)}
+.dr-status.done{color:var(--bio);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.09)}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--border2);
+  border-top-color:var(--teal);animation:spin .8s linear infinite}
+.dr-status.done .spin{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dr-counter{display:flex;align-items:baseline;gap:6px;padding:6px 14px;border-radius:11px;
+  border:1px solid var(--border2);background:var(--panel2)}
+.dr-counter b{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#fff}
+.dr-counter span{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+
+/* three columns */
+.dr-cols{display:flex;gap:16px;height:468px}
+.dr-panel{background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);
+  border-radius:14px;padding:13px 15px;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.dr-c1{flex:0 0 320px}
+.dr-c2{flex:1 1 auto;box-shadow:0 14px 40px rgba(0,0,0,.35),0 0 30px rgba(45,212,191,.10)}
+.dr-c3{flex:0 0 392px}
+.dr-pt{font-size:12.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);
+  font-weight:700;margin-bottom:9px;flex-shrink:0}
+.dr-pt-n{color:var(--dim);font-weight:600;letter-spacing:.5px}
+.dr-pt-n b{font-family:'JetBrains Mono',monospace;color:var(--teal)}
+.dr-pt-find{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+
+/* col 1: plan + subagents */
+.dr-plan{font-size:13px;line-height:1.5;color:#aab6cd;margin-bottom:10px;min-height:34px;white-space:pre-wrap}
+.dr-plan .tok-key{color:var(--teal)}
+.dr-agent-list{display:flex;flex-direction:column;gap:8px}
+.dr-agent{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--border);background:var(--panel2);opacity:.28;transform:translateX(-8px);
+  transition:all .45s ease}
+.dr-agent.lit{opacity:1;transform:none;border-color:var(--border2)}
+.dr-agent .ai{width:9px;height:9px;border-radius:50%;background:var(--dim);flex-shrink:0;margin-top:4px;
+  transition:all .4s}
+.dr-agent.lit .ai{background:var(--gold);box-shadow:0 0 9px var(--gold);animation:blink 1s infinite}
+.dr-agent.ok .ai{background:var(--bio);box-shadow:0 0 9px var(--bio);animation:none}
+.dr-agent .an{font-size:14px;font-weight:700;color:#dfe7f7;line-height:1.2}
+.dr-agent .af{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.3}
+.dr-agent .ac{margin-left:auto;font-size:14px;flex-shrink:0;color:var(--dim);align-self:center}
+.dr-agent.ok .ac{color:var(--bio)}
+
+/* col 2: live search feed */
+.dr-feed{flex:1;overflow:hidden;position:relative}
+.dr-feed::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,#0c1120)}
+.dr-feed-scroll{display:flex;flex-direction:column;gap:4px;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.dr-q{display:flex;align-items:center;gap:8px;margin-top:10px;opacity:0;transform:translateY(6px);
+  transition:all .4s}
+.dr-q:first-child{margin-top:0}
+.dr-q.show{opacity:1;transform:none}
+.dr-q .qi{width:15px;height:15px;flex-shrink:0;color:var(--teal);
+  display:inline-flex;align-items:center;justify-content:center}
+.dr-q .qi svg{width:100%;height:100%;display:block}
+.dr-q .qt{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--j-key);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-q .qn{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:700;color:var(--teal);
+  padding:2px 7px;border-radius:10px;background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.25)}
+.dr-r{display:flex;align-items:center;gap:8px;padding:4px 0 4px 20px;opacity:0;transform:translateX(-6px);
+  transition:all .35s}
+.dr-r.show{opacity:1;transform:none}
+.dr-r .rt{font-size:13px;color:#b8c4da;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-r .rd{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:600;color:var(--opto);
+  background:rgba(124,140,248,.12);padding:1px 7px;border-radius:5px}
+
+/* col 3: domain bars + findings */
+.dr-domains{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.dr-dom{display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .4s}
+.dr-dom.show{opacity:1}
+.dr-dom .dtop{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px}
+.dr-dom .dn{color:#c6d0e2;font-family:'JetBrains Mono',monospace;font-weight:500}
+.dr-dom .dv{font-family:'JetBrains Mono',monospace;color:#fff;font-weight:700}
+.dr-dom-bar{height:6px;border-radius:4px;background:#0a0e1a;border:1px solid var(--border);overflow:hidden}
+.dr-dom-bar .f{height:100%;width:0;border-radius:4px;
+  background:linear-gradient(90deg,var(--hydro),var(--teal));transition:width .9s cubic-bezier(.4,0,.2,1); display: block;;}
+.dr-dom-more{font-size:12px;color:var(--dim);font-style:italic;margin-top:1px;opacity:0;transition:opacity .4s}
+.dr-dom-more.show{opacity:1}
+.dr-findings{display:flex;flex-direction:column;gap:9px;overflow:hidden;flex:1}
+.dr-find{font-size:13px;line-height:1.4;color:#c2cce0;opacity:0;transform:translateY(6px);
+  transition:all .45s;padding-left:13px;position:relative}
+.dr-find::before{content:"•";position:absolute;left:0;color:var(--teal)}
+.dr-find.show{opacity:1;transform:none}
+.dr-find .tok-cite{margin-left:4px}
+
+/* report-ready flash */
+.dr-done{position:absolute;right:40px;bottom:84px;display:flex;align-items:center;gap:9px;
+  font-size:13px;font-weight:700;color:#04201b;padding:9px 17px;border-radius:11px;
+  background:linear-gradient(90deg,var(--teal),var(--bio));box-shadow:0 0 26px rgba(45,212,191,.5);
+  opacity:0;transform:translateY(8px) scale(.96);transition:all .5s cubic-bezier(.34,1.56,.64,1);z-index:7}
+.dr-done.show{opacity:1;transform:none}
+.dr-boom{font-size:15px}
+
+/* ---- stage 3: literature report ---- */
+.conf-wrap{width:330px;display:flex;flex-direction:column;gap:18px}
+
+/* ---- stage 5: scorecard ---- */
+.scorecard{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+.score-row{display:flex;flex-direction:column;gap:4px}
+.score-row .top{display:flex;justify-content:space-between;font-size:11.5px}
+.score-row .top .k{color:var(--muted);font-weight:600}
+.score-row .top .v{font-family:'JetBrains Mono',monospace;color:#fff;font-weight:700}
+.crit-loop{font-size:11px;line-height:1.5;color:var(--muted);border-left:2px solid var(--crit);padding:6px 0 6px 9px;margin-top:2px}
+.score-bar{height:7px;border-radius:5px;background:#0a0e1a;border:1px solid var(--border);overflow:hidden}
+.score-bar .f{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--crit),var(--gold),var(--bio));transition:width 1s cubic-bezier(.4,0,.2,1); display: block;}
+
+/* ---- stage 6: reaction network ---- */
+.net-wrap{display:flex;flex-direction:column;align-items:center;gap:11px;width:100%}
+.net-head{display:flex;align-items:center;gap:14px}
+.net-head .nlogo{width:40px;height:40px}
+.net-head .title{font-size:20px;font-weight:700;letter-spacing:.5px}
+.net-head .sub{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+#rxn-svg{width:980px;height:420px}
+.nnode{opacity:0;transform:scale(.2);transform-box:fill-box;transform-origin:center;transition:opacity .4s,transform .5s cubic-bezier(.34,1.56,.64,1)}
+.nnode.show{opacity:1;transform:scale(1)}
+.nedge{stroke-dashoffset:var(--len);transition:stroke-dashoffset .7s ease}
+.nedge.show{stroke-dashoffset:0}
+.nedge.product{stroke-dashoffset:0;opacity:0}
+.nedge.product.show{opacity:1}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 15px;font-size:13px;color:var(--muted);max-width:930px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0}
+.legend .lg-ring{width:12px;height:12px;border-radius:50%;background:transparent;border:2px solid}
+.legend .lg-ring.start{border-color:#6c7c9c}
+.legend .lg-ring.inter{border-color:#3498db}
+.legend .lg-ring.hub{border-color:#E8B84B}
+.legend .lg-ring.target{border-color:#EF4444}
+.legend .lg-hr{width:15px;height:11px;border-radius:4px;background:transparent;border:1.6px solid #9aa6bd}
+.legend .lg-line{display:inline-block;vertical-align:middle}
+
+/* zoom-to-rxn focus */
+.net-wrap{transition:transform .6s cubic-bezier(.4,0,.2,1)}
+#stage-6.show-detail .net-wrap{transform:translateX(-180px) scale(.96)}
+.nnode,.nedge{transition:opacity .5s,stroke-dashoffset .7s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
+.focus-mode .nnode:not(.focused){opacity:.16}
+.focus-mode .nedge:not(.efocus){opacity:.10}
+.nnode.focused{animation:focusPulse 1.4s ease-in-out infinite}
+@keyframes focusPulse{0%,100%{transform:scale(1.12)}50%{transform:scale(1.26)}}
+
+/* reaction-detail card (figure part-b style, dark) */
+.rxn-detail{
+  position:absolute;right:30px;top:48px;bottom:26px;width:442px;z-index:6;
+  background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);
+  border-radius:16px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 44px rgba(249,115,22,.12);
+  opacity:0;transform:translateX(42px);pointer-events:none;overflow:hidden;
+  transition:opacity .5s ease,transform .5s ease;
+}
+#stage-6.show-detail .rxn-detail{opacity:1;transform:none}
+.rxn-detail::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--surface),var(--gold))}
+.rd-head{display:flex;align-items:center;gap:11px}
+.rd-pill{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:#1a1208;
+  background:linear-gradient(90deg,var(--surface),#fbbf24);padding:5px 13px;border-radius:9px;
+  box-shadow:0 0 16px rgba(249,115,22,.4)}
+.rd-title{font-size:17px;font-weight:700;color:#fff}
+.rd-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px 14px}
+.rd-cell{display:flex;align-items:flex-start;gap:9px;opacity:0;transform:translateY(7px);transition:all .4s}
+.rd-cell.show,.rd-block.show,.rd-match.show{opacity:1;transform:none}
+.rd-ico{font-size:17px;line-height:1.1}
+.rd-ico.sm{font-size:13px;margin-right:6px}
+.rd-k{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.2px;text-transform:uppercase}
+.rd-v{font-size:13.5px;color:#e6ecf7;font-weight:600;margin-top:1px}
+.rd-sep{height:1px;background:var(--border);margin:1px 0}
+.rd-block{opacity:0;transform:translateY(7px);transition:all .4s;display:flex;flex-direction:column;gap:5px}
+.rd-block .rd-k{display:flex;align-items:center}
+.rd-text{font-size:12px;line-height:1.5;color:#c2cce0;white-space:pre-wrap}
+.rd-match{display:flex;align-items:flex-start;gap:10px;margin-top:auto;padding:11px 13px;border-radius:11px;
+  background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.25);
+  opacity:0;transform:translateY(7px);transition:all .4s}
+.rd-mpct{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal);font-size:13px;flex-shrink:0}
+.rd-mtext{font-size:11.5px;line-height:1.45;color:#aeb9cf;font-style:italic}
+/* scrollable lower section so the full mechanism + reasoning are never clipped */
+.rd-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:6px}
+.rd-scroll .rd-match{margin-top:0}
+.rd-scroll::-webkit-scrollbar{width:6px}
+.rd-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+/* SVG field icons on the dark card: tint monochrome art to white so it reads */
+.rd-ico img{width:19px;height:19px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.92}
+.rd-ico.sm img{width:15px;height:15px}
+
+/* ============================================================
+   COVER / TITLE SCREEN  (shown before the pipeline each loop)
+   ============================================================ */
+#cover{
+  position:absolute;inset:0;z-index:8;                 /* above topbar/bottombar(5), stage-area(4) */
+  display:flex;align-items:center;justify-content:center;
+  padding:50px 70px 150px;                              /* bottom pad reserves room for the big dock */
+  background:transparent;
+  opacity:1;visibility:visible;transition:opacity .7s ease, transform .7s ease;
+}
+#cover.hide{opacity:0;visibility:hidden;transform:scale(1.04);pointer-events:none}
+.cover-inner{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:1040px;
+  animation:coverRise .8s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes coverRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.cover-logo{width:240px;height:auto;filter:drop-shadow(0 6px 30px rgba(124,140,248,.35))}
+.cover-title{
+  font-size:24px;line-height:1.32;font-weight:700;letter-spacing:.2px;max-width:900px;
+  background:linear-gradient(90deg,#ffffff 0%,#dfe5ff 55%,var(--opto) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+}
+.cover-authors{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:980px}
+.author-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:10px 30px}
+.author{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.author img{border-radius:50%;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.45);
+  border:2px solid rgba(124,140,248,.35);background:#0e1422}
+.author figcaption{color:#e3e9f7;line-height:1.15}
+.author figcaption sup{font-size:.62em;color:var(--opto);font-weight:700;vertical-align:.5em;margin-left:1px}
+.author figcaption .corr{color:var(--gold);font-weight:700;margin-left:1px}
+/* small (default) authors row */
+.author-row.rest .author{width:130px}
+.author-row.rest .author img{width:130px;height:130px}
+.author-row.rest .author figcaption{font-size:13px}
+/* featured row: Daniel, Amirali & Amanda, larger + first */
+.author-row.lead{gap:10px 46px}
+.author-row.lead .author{width:170px}
+.author-row.lead .author img{width:170px;height:170px;border-color:var(--opto);box-shadow:0 6px 22px rgba(124,140,248,.4)}
+.author-row.lead .author figcaption{font-size:15px;font-weight:600}
+.cover-affil{display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.5;color:var(--muted);max-width:900px;margin-top:2px}
+.cover-affil sup{font-size:.7em;color:var(--opto);font-weight:700;margin-right:3px}
+.cover-affil .corr-note{color:var(--dim);margin-top:3px;font-style:italic}
+
+/* ============================================================
+   BRAND DOCK  (research institutions: cover state -> docked footer)
+   ============================================================ */
+#brand-dock{
+  position:absolute;z-index:9;                          /* ABOVE #cover(8) so it persists as cover fades */
+  display:flex;align-items:center;gap:26px;white-space:nowrap;pointer-events:none;
+  left:50%;top:645px;transform:translate(-50%,-50%) scale(1);transform-origin:center center;
+  transition:top .75s cubic-bezier(.5,0,.2,1), left .75s cubic-bezier(.5,0,.2,1),
+             transform .75s cubic-bezier(.5,0,.2,1), gap .75s cubic-bezier(.5,0,.2,1);
+}
+.bd-gt img{display:block;width:250px;border-radius:50%;box-shadow:0 6px 22px rgba(0,0,0,.45);
+  transition:width .75s cubic-bezier(.5,0,.2,1),height .75s cubic-bezier(.5,0,.2,1),box-shadow .4s ease}
+.bd-sep{width:1px;height:78px;background:linear-gradient(180deg,transparent,var(--border2),transparent);
+  transition:height .75s cubic-bezier(.5,0,.2,1)}
+.bd-ms{display:flex;align-items:center;gap:16px;transition:gap .75s cubic-bezier(.5,0,.2,1)}
+.bd-ms-mark{width:96px;height:96px;border-radius:50%;background:#fff;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.45);
+  transition:width .75s cubic-bezier(.5,0,.2,1),height .75s cubic-bezier(.5,0,.2,1),box-shadow .4s ease}
+.bd-ms-mark img{width:58px;height:58px;display:block;
+  transition:width .75s cubic-bezier(.5,0,.2,1),height .75s cubic-bezier(.5,0,.2,1)}
+.bd-ms-text{font-size:30px;font-weight:600;letter-spacing:.2px;line-height:1;font-family:'Source Sans 3',sans-serif;
+  background:linear-gradient(90deg,#F25022 0%,#E0218A 34%,#8A2BE2 64%,#2DA8F0 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+  transition:font-size .75s cubic-bezier(.5,0,.2,1)}
+.bd-nasa img{display:block;height:150px;width:auto;
+  filter:drop-shadow(0 6px 22px rgba(0,0,0,.45));
+  transition:height .75s cubic-bezier(.5,0,.2,1),filter .4s ease}
+/* docked (small, bottom-left) state */
+#brand-dock.docked{left:30px;top:684px;transform:translate(0,-50%) scale(1);gap:14px}
+#brand-dock.docked .bd-gt img{width:120px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#brand-dock.docked .bd-sep{height:26px}
+#brand-dock.docked .bd-ms{gap:8px}
+#brand-dock.docked .bd-ms-mark{width:34px;height:34px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#brand-dock.docked .bd-ms-mark img{width:21px;height:21px}
+#brand-dock.docked .bd-ms-text{font-size:13px}
+#brand-dock.docked .bd-nasa img{height:60px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+
+/* ---- bottom chrome ---- */
+#bottombar{
+  position:absolute;bottom:0;left:0;right:0;height:72px;z-index:5;
+  display:flex;align-items:center;padding:0 30px;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+#bottombar::before{content:"";flex:0 0 400px}          /* reserve left zone for the docked logos */
+.dots{display:flex;gap:9px;align-items:center;margin-left:auto}
+.pdot{width:9px;height:9px;border-radius:50%;background:var(--border2);transition:all .4s}
+.pdot.active{background:var(--opto);box-shadow:0 0 12px var(--opto);transform:scale(1.3)}
+.pdot.done{background:var(--teal)}
+.stage-label{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.stage-label b{color:#fff}
+.controls{position:absolute;bottom:20px;right:20px;z-index:10;display:flex;gap:9px;align-items:center}
+.btn{
+  font-family:inherit;font-size:12.5px;font-weight:700;color:var(--text);cursor:pointer;
+  padding:9px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--panel2);
+  display:flex;align-items:center;gap:7px;transition:all .2s;letter-spacing:.3px;
+}
+.btn:hover{border-color:var(--opto);color:#fff;box-shadow:0 0 16px rgba(124,140,248,.3)}
+.btn .ico{font-size:13px}
+.btn.speed{min-width:54px;justify-content:center}
+.btn.active{border-color:var(--opto);color:#fff;background:rgba(124,140,248,.15);box-shadow:0 0 16px rgba(124,140,248,.3)}
+#stage.paused *{animation-play-state:paused!important}
+
+/* ============================================================
+   STAGE 7 — RESULTS RADARS (Figure 2a)
+   ============================================================ */
+.results-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+.results-head{text-align:center}
+.results-head .title{font-size:23px;font-weight:700;letter-spacing:.4px;
+  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
+.results-head .sub{font-size:12px;color:var(--muted);letter-spacing:.4px;margin-top:3px}
+.rp-row{display:flex;gap:24px;justify-content:center;align-items:flex-start}
+.rp-card{width:372px;height:356px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);border-radius:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 34px rgba(124,140,248,.06);
+  opacity:0;transform:translateY(14px) scale(.98);
+  transition:opacity .5s cubic-bezier(.34,1.56,.64,1), transform .5s cubic-bezier(.34,1.56,.64,1)}
+.rp-card.in{opacity:1;transform:none}
+.rp-head{display:flex;align-items:center;gap:10px;height:40px}
+.rp-head .agent-icon{width:34px;height:34px;border-radius:10px}
+.rp-name{font-size:17px;font-weight:700;color:#e6ecf7}
+.rp-card svg{width:100%;height:auto;display:block}
+.rgrid{fill:none;stroke:var(--border);stroke-width:1;opacity:0;
+  transform-box:fill-box;transform-origin:center;transform:scale(.72);
+  transition:opacity .5s ease, transform .55s cubic-bezier(.4,0,.2,1)}
+.rgrid.router{stroke:var(--border2)}
+.rspoke{stroke:var(--border);stroke-width:1;opacity:0;transition:opacity .5s ease}
+.rtick{fill:var(--dim);font-size:8px;font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .5s ease}
+.rgrid-group.drawn .rgrid{opacity:1;transform:scale(1)}
+.rgrid-group.drawn .rspoke{opacity:1}
+.rgrid-group.drawn .rtick{opacity:.7}
+.rlabel-group{opacity:0;transform:translateY(4px);transition:opacity .5s ease, transform .5s ease}
+.rlabel-group.shown{opacity:1;transform:none}
+.rlbl{fill:#b7c2d8;font-size:13px;font-weight:600;font-family:'Source Sans 3',sans-serif}
+.rprof{fill-opacity:.13;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.rdot{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0);
+  transition:opacity .3s ease, transform .4s cubic-bezier(.34,1.56,.64,1)}
+.rdot.pop{opacity:1;transform:scale(1)}
+.results-legend{display:flex;justify-content:center;gap:26px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.rlgd-item{display:flex;align-items:center;gap:9px;opacity:.4;transition:opacity .4s ease, color .4s ease}
+.rlgd-item.lit{opacity:1;color:#e6ecf7}
+.rlgd-sw{width:22px;height:12px;border-radius:3px;border:2px solid;box-sizing:border-box}
+.rlgd-item.lit .rlgd-sw{box-shadow:0 0 12px currentColor}
+
+/* ============================================================
+   STAGE 8 — OVERVIEW (aggregate model-comparison radar)
+   reuses .rgrid/.rspoke/.rtick/.rlbl/.rprof/.rdot + .rlgd-item/.rlgd-sw
+   ============================================================ */
+.agg-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
+.agg-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 22px;
+  background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);border-radius:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 34px rgba(124,140,248,.06);
+  opacity:0;transform:translateY(14px) scale(.98);
+  transition:opacity .5s cubic-bezier(.34,1.56,.64,1), transform .5s cubic-bezier(.34,1.56,.64,1)}
+.agg-card.in{opacity:1;transform:none}
+.agg-head{text-align:center}
+.agg-head .title{font-size:23px;font-weight:700;letter-spacing:.4px;
+  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
+.agg-head .sub{font-size:12.5px;color:var(--muted);letter-spacing:.4px;margin-top:3px}
+#agg-radar{height:380px;width:auto;display:block}   /* viewBox 500x372 -> ~511px wide on screen */
+.agg-legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
+.agg-legend .rlgd-item{gap:8px}
+.agg-ico{width:24px;height:24px;border-radius:7px;padding:4px}
+.agg-lgd-name{font-size:14px;font-weight:600}
+/* ============================================================
+   STEPPER COMPACTION (14 stages) — show the label only on the active step
+   ============================================================ */
+#stepper .step .lbl{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;
+  transition:max-width .45s ease, opacity .4s ease, margin .4s ease;margin-left:0}
+#stepper .step.active .lbl{max-width:160px;opacity:1;margin-left:3px}
+#stepper .bar{min-width:5px}
+
+/* ============================================================
+   STAGE 9 — EMERGENT PROPERTIES (Figure 2 b,c,d)
+   ============================================================ */
+.emg-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.emg-head{text-align:center}
+.emg-head .title{font-size:23px;font-weight:700;letter-spacing:.4px;
+  background:linear-gradient(90deg,#fff,var(--opto));-webkit-background-clip:text;background-clip:text;color:transparent}
+.emg-head .sub{font-size:12px;color:var(--muted);letter-spacing:.4px;margin-top:3px}
+.emg-row{display:flex;gap:18px;justify-content:center;align-items:stretch}
+.emg-card{background:linear-gradient(180deg,#111a2c,#0c1120);border:1px solid var(--border2);border-radius:14px;
+  padding:12px 14px 10px;display:flex;flex-direction:column;gap:6px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5), 0 0 34px rgba(124,140,248,.06);
+  opacity:0;transform:translateY(14px) scale(.98);
+  transition:opacity .5s cubic-bezier(.34,1.56,.64,1), transform .5s cubic-bezier(.34,1.56,.64,1)}
+.emg-card.in{opacity:1;transform:none}
+.emg-ctitle{font-size:12px;font-weight:600;color:#b7c2d8;font-family:'JetBrains Mono',monospace;text-align:center}
+.emg-card svg{display:block}
+.emg-img{display:block;width:auto;border-radius:8px;align-self:center}
+.violin{stroke-width:1.4;fill-opacity:.24;stroke-linejoin:round;
+  transform-box:fill-box;transform-origin:center;transform:scaleX(0);
+  transition:transform .55s cubic-bezier(.34,1.56,.64,1)}
+.violin.grown{transform:scaleX(1)}
+.vbox{fill:#0a0e1a;stroke:#c7d2e8;stroke-width:1.1;opacity:0;transition:opacity .4s ease}
+.vmed{stroke:#fff;stroke-width:2;opacity:0;transition:opacity .4s ease}
+.vbox.shown,.vmed.shown{opacity:.92}
+.vaxis{stroke:var(--border2);stroke-width:1;opacity:0;transition:opacity .4s ease}
+.vaxis.shown{opacity:1}
+.vtick{fill:var(--dim);font-size:8px;font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .4s ease}
+.vtick.shown{opacity:.7}
+.vlabel{fill:#b7c2d8;font-size:10px;font-weight:600;text-anchor:middle}
+.vgh{fill:#7f8aa3;font-size:9.5px;text-anchor:middle}
+.hm-cell{stroke:#0a0e1a;stroke-width:1;transform-box:fill-box;transform-origin:center;
+  opacity:0;transform:scale(.55);transition:opacity .3s ease, transform .35s cubic-bezier(.34,1.56,.64,1)}
+.hm-cell.pop{opacity:1;transform:scale(1)}
+.hm-rowlbl{fill:#c2cce0;font-size:9px;text-anchor:end;font-family:'Source Sans 3',sans-serif}
+.hm-collbl{fill:#8fa0bd;font-size:8.5px;text-anchor:middle;font-family:'JetBrains Mono',monospace}
+.hm-bar{fill:var(--opto);width:0;transition:width .55s cubic-bezier(.4,0,.2,1)}
+.hm-barval{fill:#c2cce0;font-size:8.5px;font-family:'JetBrains Mono',monospace;text-anchor:start}
+.hm-axtitle{fill:#8fa0bd;font-size:8.5px;text-anchor:middle;font-family:'JetBrains Mono',monospace}
+
+/* ============================================================
+   OPTOVLAB CONTENT OVERRIDES
+   ============================================================ */
+.cover-logo{width:350px}
+.cover-inner{gap:18px}
+.cover-title{font-size:29px;max-width:980px}
+.cover-authors{gap:9px}
+.cover-byline{max-width:960px;color:#dfe6f5;font-size:15px;line-height:1.7}
+.cover-byline strong{color:#fff}.cover-byline sup{font-size:.68em;color:var(--opto);font-weight:700}.cover-byline sup.corr{color:var(--gold)}
+.cover-affil{display:flex;align-items:center;text-align:center}
+.inst-dock{height:72px;min-width:250px;padding:0 24px;border:1px solid rgba(124,140,248,.34);border-radius:18px;background:rgba(14,20,34,.9);box-shadow:0 12px 34px rgba(0,0,0,.42);display:flex;align-items:center;gap:14px;transition:all .75s cubic-bezier(.5,0,.2,1)}
+.inst-dock span{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#7C8CF8,#2DD4BF);color:#08101c;font:800 13px/1 'JetBrains Mono',monospace;transition:all .75s cubic-bezier(.5,0,.2,1)}
+.inst-dock b{font-size:18px;color:#dfe6f5;transition:font-size .75s cubic-bezier(.5,0,.2,1)}
+#brand-dock.docked .inst-dock{height:36px;min-width:0;padding:0 10px;border-radius:10px;gap:7px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#brand-dock.docked .inst-dock span{width:24px;height:24px;border-radius:7px;font-size:8px}
+#brand-dock.docked .inst-dock b{font-size:11px}
+.nlogo{border:0;padding:0;background:none}.mol-img{object-fit:contain}
+.placeholder-note{color:#f6b95f!important}.paper-data-note{font:600 11.5px/1.4 'JetBrains Mono',monospace;color:var(--teal);letter-spacing:.25px}
+.score-note{margin-top:-3px;font:600 9.5px/1.3 'JetBrains Mono',monospace;color:#f0a8d1;letter-spacing:.15px}
+.result-stat{text-align:center;margin-top:4px}.result-stat b{display:block;font:700 33px/1.1 'JetBrains Mono',monospace;background:linear-gradient(90deg,#fff,var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}.result-stat span{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
+.mini-flow{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin:22px 0 14px}.mini-flow span{min-width:76px;padding:10px 7px;border:1px solid var(--border2);border-radius:10px;background:#0c1221;text-align:center;font:700 15px/1.2 'JetBrains Mono',monospace;color:#dfe6ff}.mini-flow small{font-size:8px;color:var(--dim);text-transform:uppercase}.mini-flow i{color:var(--teal);font-size:19px;font-style:normal}
+.result-note{margin:auto 3px 4px;text-align:center;color:#9daac2;font:500 11px/1.5 'JetBrains Mono',monospace}
+.metric-chart{width:300px!important;height:135px!important;margin-top:12px;overflow:visible}.metric-chart .band{fill:rgba(124,140,248,.16);stroke:none}.metric-chart .line{fill:none;stroke:var(--opto);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.metric-chart .line.green{stroke:var(--teal)}.metric-chart .grid{fill:none;stroke:var(--border);stroke-width:1}.metric-chart circle{fill:var(--opto);stroke:#e7ebff;stroke-width:1}.metric-chart .dots-green circle{fill:var(--teal)}.metric-chart text{fill:var(--dim);font:9px 'JetBrains Mono',monospace}
+.figure-card{width:320px;height:410px;justify-content:flex-start;overflow:hidden}.figure-card.wide{width:500px}.figure-card .emg-img{width:100%;height:354px;object-fit:contain;background:#fff}.figure-card.wide .emg-img{height:354px}.figure-card .emg-ctitle{min-height:28px;display:grid;place-items:center}
+#stage-8 .rlbl{font-size:11px}
+.rd-cell .rd-ico img[src*="agent_"],.rd-cell .rd-ico img[src*="oled_device"]{filter:none;background:#fff;border-radius:4px}
+
+</style>
+</head>
+<body>
+<!-- OptoVLab keeps the original cinematic stage system while using
+     project-specific vector icons and manuscript figures. -->
+<video id="bg-video" autoplay loop muted playsinline>
+  <source src="imgs/169951-842348732_medium.mp4" type="video/mp4">
+</video>
+<div id="viewport">
+  <div id="stage">
+
+    <!-- COVER / TITLE BACKDROP -->
+    <div id="cover">
+      <div class="cover-inner">
+        <img class="cover-logo" src="imgs/optovlab_logo.svg" alt="OptoVLab" />
+        <h1 class="cover-title">A Self-improving Agentic Virtual Laboratory for Organic Optoelectronic Research</h1>
+        <div class="cover-authors">
+          <p class="cover-byline"><strong>Qian Zhang<sup>1,†</sup></strong>, <strong>Yongxu Hu<sup>1,†</sup></strong>, Zhiyao Su<sup>1</sup>, Jingsheng Miao<sup>2</sup>, Xiaoyu Guo<sup>2</sup>, Nengquan Li<sup>2</sup>, Chuluo Yang<sup>2</sup>, Yajing Sun<sup class="corr">1,*</sup>, Wenping Hu<sup class="corr">1,*</sup></p>
+          <p class="cover-affil"><span><sup>1</sup>Tianjin University · Key Laboratory of Organic Integrated Circuits</span><span><sup>2</sup>Shenzhen University · New Information Display and Storage Materials</span><span class="corr-note">† Equal contribution · * Corresponding authors</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSTITUTION LABELS — dock to the footer on transition -->
+    <div id="brand-dock">
+      <div class="inst-dock"><span>TJU</span><b>Tianjin University</b></div>
+      <div class="bd-sep"></div>
+      <div class="inst-dock"><span>SZU</span><b>Shenzhen University</b></div>
+    </div>
+
+    <!-- TOP BAR -->
+    <div id="topbar" class="hide">
+      <a class="brand" href="../" aria-label="Back to OptoVLab home">
+        <img class="brand-logo" src="imgs/optovlab_logo.svg" alt="OptoVLab" />
+      </a>
+      <div id="stepper"></div>
+    </div>
+
+    <!-- FLOATING CONTROLS — top-left, above the cover & stages -->
+    <div class="controls">
+      <button class="btn" id="btn-pause"><span class="ico">⏸</span></button>
+      <button class="btn speed" id="btn-speed">1×</button>
+      <button class="btn" id="btn-replay"><span class="ico">↻</span></button>
+    </div>
+
+    <!-- STAGE AREA -->
+    <div id="stage-area">
+
+      <!-- STAGE 1: RESEARCH INPUT -->
+      <section class="stage" id="stage-1">
+        <div class="input-card">
+          <div class="input-top s1-in">
+            <div class="tt-ico has-img"><img src="imgs/oled_device.svg" alt="" /></div>
+            <div class="t">Research Objective · Input</div>
+          </div>
+          <div class="input-body">
+            <div class="instr">
+              <div class="lab s1-in">Instructions</div>
+              <div class="txt" id="instr-txt"></div>
+            </div>
+            <div class="flow-arrow s1-in">⟶</div>
+            <div class="target s1-in">
+              <div class="lab">Baseline Device</div>
+              <div class="mol-ph has-img">
+                <i class="ret tl"></i><i class="ret tr"></i><i class="ret bl"></i><i class="ret br"></i>
+                <img class="mol-img" src="imgs/oled_device.svg" alt="Multilayer 4CzIPN OLED" />
+                <div class="big">4CzIPN OLED</div>
+                <div class="sub">Baseline EQE · 18.6%</div>
+                <div class="sub" style="max-width:190px;font-size:10px;line-height:1.35">ITO / PEDOT:PSS / mCP:10% 4CzIPN / TmPyPB / Liq / Al</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 2: DATA MINING AGENT -->
+      <section class="stage" id="stage-2">
+        <div class="dr">
+          <div class="dr-head">
+            <span class="agent-icon dr-ico has-img"><img src="imgs/agent_data.svg" alt="Data Mining Agent" /></span>
+            <div class="dr-id">
+              <div class="dr-title">Data Mining Agent</div>
+              <div class="dr-sub">Multimodal literature mining &amp; structured OLED database</div>
+            </div>
+            <div class="dr-status" id="dr-status"><span class="spin"></span> extracting…</div>
+            <div class="dr-counter"><b id="dr-count">0</b><span>device records</span></div>
+          </div>
+
+          <div class="dr-cols">
+            <!-- column 1: orchestrator plan + subagents -->
+            <div class="dr-panel dr-c1">
+              <div class="dr-pt">Domain tools <span class="dr-pt-n">· 11 total</span></div>
+              <div class="dr-plan" id="dr-plan"></div>
+              <div class="dr-agent-list" id="dr-agent-list"></div>
+            </div>
+            <!-- column 2: live search feed -->
+            <div class="dr-panel dr-c2">
+              <div class="dr-pt">Live extraction <span class="dr-pt-n" id="dr-feed-n">· 0 batches</span></div>
+              <div class="dr-feed" id="dr-feed"><div class="dr-feed-scroll" id="dr-feed-scroll"></div></div>
+            </div>
+            <!-- column 3: sources + findings -->
+            <div class="dr-panel dr-c3">
+              <div class="dr-pt">Full-text corpus <span class="dr-pt-n">· <b id="dr-src-n">20,190</b></span></div>
+              <div class="dr-domains" id="dr-domains"></div>
+              <div class="dr-pt dr-pt-find">Key findings</div>
+              <div class="dr-findings" id="dr-findings"></div>
+            </div>
+          </div>
+
+          <div class="dr-done" id="dr-done"><span class="dr-boom">✦</span> Structured OLED database ready</div>
+        </div>
+      </section>
+
+      <!-- STAGE 3: DEVICE MODELING AGENT -->
+      <section class="stage" id="stage-3">
+        <div class="conf-wrap">
+          <div class="agent-head">
+            <div class="agent-icon has-img"><img src="imgs/agent_model.svg" alt="Device Modeling Agent" /></div>
+            <div>
+              <div class="agent-name" style="font-size:19px">Device Modeling Agent</div>
+              <div class="agent-tag">OLED-GAT · Performance prediction</div>
+            </div>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:4px">
+            Builds a device-level graph from the multilayer OLED stack, trains an uncertainty-aware graph attention network, and predicts EQE quantiles with leakage-aware validation.
+          </div>
+        </div>
+        <div class="win">
+          <div class="win-bar">
+            <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+            <span class="win-title">oled_gat_training.log</span>
+            <span class="win-stream"><span class="pulse"></span>training</span>
+          </div>
+          <div class="code" id="report-doc"></div>
+        </div>
+      </section>
+
+      <!-- STAGE 4: EXPERIMENTAL DECISION AGENT -->
+      <section class="stage" id="stage-4">
+        <div class="idcol">
+          <div class="agent-head">
+            <div class="agent-icon has-img"><img src="imgs/agent_decision.svg" alt="Experimental Decision Agent" /></div>
+            <div>
+              <div class="agent-name">Experimental Decision Agent</div>
+              <div class="agent-tag">Human-in-the-loop · Active learning</div>
+              <div class="agent-tag" style="letter-spacing:.5px;text-transform:none;margin-top:3px">Database + RAG + OLED-GAT + constraints</div>
+            </div>
+          </div>
+          <div class="chips" id="synth-chips">
+            <span class="chip c-opto">Knowledge Retrieval</span>
+            <span class="chip c-opto">Candidate Ranking</span>
+            <span class="chip c-opto">Experiment Planning</span>
+            <span class="chip c-opto">Next-experiment Selection</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:4px">
+            Ranks actionable OLED candidates by predicted performance, uncertainty, literature evidence, and laboratory constraints, then proposes the next experiment for researcher approval.
+          </div>
+        </div>
+        <div class="win">
+          <div class="win-bar">
+            <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+            <span class="win-title">next_experiment.json</span>
+            <span class="win-stream"><span class="pulse"></span>planning</span>
+          </div>
+          <div class="code" id="synth-code"></div>
+        </div>
+      </section>
+
+      <!-- STAGE 5: SCIENTIFIC CRITIC -->
+      <section class="stage" id="stage-5">
+        <div class="idcol">
+          <div class="agent-head">
+            <div class="agent-icon has-img" style="border-color:rgba(190,51,130,.55);box-shadow:0 0 14px rgba(190,51,130,.28)"><img src="imgs/agent_critic.svg" alt="Scientific Critic Agent" /></div>
+            <div>
+              <div class="agent-name">Scientific Critic Agent</div>
+              <div class="agent-tag">Shared supervisor · Corrective feedback</div>
+              <div class="agent-tag" style="letter-spacing:.5px;text-transform:none;margin-top:3px">Continuously audits data, models, and decisions</div>
+            </div>
+          </div>
+          <div class="chips" id="crit-chips">
+            <span class="chip c-crit">Data Integrity</span>
+            <span class="chip c-crit">Source Traceability</span>
+            <span class="chip c-crit">Leakage Check</span>
+            <span class="chip c-crit">Model Rigor</span>
+            <span class="chip c-crit">Physical Plausibility</span>
+            <span class="chip c-crit">Experimental Feasibility</span>
+          </div>
+          <div class="scorecard" id="scorecard"></div>
+          <div class="score-note">Illustrative audit indicators · not manuscript results</div>
+          <div class="crit-loop">Conflicts are routed back to the responsible agent; approved plans still require human review.</div>
+        </div>
+        <div class="win crit">
+          <div class="win-bar">
+            <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+            <span class="win-title">scientific_critic.json</span>
+            <span class="win-stream" style="color:#D85AA5"><span class="pulse" style="background:#D85AA5;box-shadow:0 0 8px #D85AA5"></span>evaluating</span>
+          </div>
+          <div class="code" id="crit-code"></div>
+        </div>
+      </section>
+
+      <!-- STAGE 6: FEEDBACK-DRIVEN OPTIMIZATION -->
+      <section class="stage" id="stage-6">
+        <div class="net-wrap">
+          <div class="net-head">
+            <div class="logo-ph nlogo"><img src="imgs/optovlab_favicon.svg" alt="" style="width:100%;height:100%;border-radius:10px"></div>
+            <div>
+              <div class="title">Feedback-driven OLED Optimization</div>
+              <div class="sub">Experiment → validated data → memory, database &amp; model updates</div>
+            </div>
+          </div>
+          <div class="legend" id="net-legend">
+            <span><svg class="lg-line" width="22" height="9"><line x1="1" y1="4.5" x2="21" y2="4.5" stroke="#7C8CF8" stroke-width="2"/></svg>Research flow</span>
+            <span><svg class="lg-line" width="22" height="9"><line x1="1" y1="4.5" x2="21" y2="4.5" stroke="#F59E0B" stroke-width="2" stroke-dasharray="4 3"/></svg>Feedback update</span>
+            <span><i style="background:#7C8CF8"></i>Data &amp; model</span>
+            <span><i style="background:#2DD4BF"></i>Experiment</span>
+            <span><i style="background:#F59E0B"></i>Decision memory</span>
+            <span><i class="lg-hr"></i>Best observed device</span>
+          </div>
+          <svg id="rxn-svg" viewBox="0 0 980 420" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <!-- zoom-in detail card for rxn 6 (figure part-b style) -->
+        <div class="rxn-detail" id="rxn-detail">
+          <div class="rd-head"><span class="rd-pill">ROUND 4</span><span class="rd-title">Validated Experiment</span></div>
+          <div class="rd-grid">
+            <div class="rd-cell"><span class="rd-ico"><img src="imgs/agent_decision.svg" alt=""></span><div><div class="rd-k">Architecture change</div><div class="rd-v" id="rd-temp"></div></div></div>
+            <div class="rd-cell"><span class="rd-ico"><img src="imgs/agent_model.svg" alt=""></span><div><div class="rd-k">Model signal</div><div class="rd-v" id="rd-pres"></div></div></div>
+            <div class="rd-cell"><span class="rd-ico"><img src="imgs/oled_device.svg" alt=""></span><div><div class="rd-k">Measured EQE</div><div class="rd-v" id="rd-cat"></div></div></div>
+            <div class="rd-cell"><span class="rd-ico"><img src="imgs/agent_data.svg" alt=""></span><div><div class="rd-k">Relative gain</div><div class="rd-v" id="rd-aq"></div></div></div>
+          </div>
+          <div class="rd-sep"></div>
+          <div class="rd-scroll" id="rd-scroll">
+            <div class="rd-block"><div class="rd-k"><span class="rd-ico sm"><img src="imgs/cogs-svgrepo-com.svg" alt=""></span>Decision rationale</div><div class="rd-text" id="rxn6-mech"></div></div>
+            <div class="rd-block"><div class="rd-k"><span class="rd-ico sm"><img src="imgs/search-globe.svg" alt=""></span>Feedback update</div><div class="rd-text" id="rxn6-reason"></div></div>
+            <div class="rd-match"><span class="rd-ico sm">↻</span><span class="rd-mpct">+42%</span><span class="rd-mtext" id="rd-match"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 7: PAPER RESULTS -->
+      <section class="stage" id="stage-7">
+        <div class="results-wrap">
+          <div class="results-head">
+            <div class="title">Results</div>
+            <div class="sub">Structured data, uncertainty-aware prediction, and experimental validation</div>
+          </div>
+          <div class="rp-row">
+            <div class="rp-card">
+              <div class="rp-head"><span class="agent-icon has-img"><img src="imgs/agent_data.svg" alt=""></span><span class="rp-name">Structured Knowledge</span></div>
+              <div class="result-stat"><b>19,175</b><span>traceable multilayer OLED device records</span></div>
+              <div class="mini-flow"><span>21,580<br><small>candidates</small></span><i>→</i><span>20,190<br><small>full text</small></span><i>→</i><span>19,175<br><small>devices</small></span></div>
+              <p class="result-note">Materials · architecture · fabrication · performance · provenance</p>
+            </div>
+            <div class="rp-card">
+              <div class="rp-head"><span class="agent-icon has-img"><img src="imgs/agent_model.svg" alt=""></span><span class="rp-name">OLED-GAT Prediction</span></div>
+              <div class="result-stat"><b>R² 0.81</b><span>held-out test performance</span></div>
+              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="Prediction interval example"><path class="band" d="M18 90C70 70 105 78 145 50s86-30 136-18v42c-57-12-91 2-132 18S70 104 18 112Z"/><path class="line" d="M18 101C69 83 104 88 147 65s83-30 134-14"/><circle cx="235" cy="55" r="5"/><text x="18" y="118">Q10</text><text x="265" y="118">Q90</text></svg>
+              <p class="result-note">MAE 2.56 percentage points · Q10 / Q50 / Q90</p>
+            </div>
+            <div class="rp-card">
+              <div class="rp-head"><span class="agent-icon has-img"><img src="imgs/oled_device.svg" alt=""></span><span class="rp-name">Experimental Optimization</span></div>
+              <div class="result-stat"><b>26.5% EQE</b><span>best validated device · Round 4</span></div>
+              <svg class="metric-chart" viewBox="0 0 300 120" aria-label="EQE improvement from baseline to round four"><path class="grid" d="M18 95H285M18 65H285M18 35H285"/><path class="line green" d="M18 94 82 78 146 65 210 28 274 29"/><g class="dots-green"><circle cx="18" cy="94" r="4"/><circle cx="82" cy="78" r="4"/><circle cx="146" cy="65" r="4"/><circle cx="210" cy="28" r="6"/><circle cx="274" cy="29" r="4"/></g><text x="18" y="116">18.6</text><text x="247" y="116">26.5</text></svg>
+              <p class="result-note">18.6% → 26.5% · +42% relative improvement<br>Schematic trend; intermediate points not to scale<br>Static workflow: 22.4% after seven rounds</p>
+            </div>
+          </div>
+          <div class="results-legend" id="results-legend"><span class="paper-data-note">Headline metrics are reported in the manuscript; mini-curves are schematic.</span></div>
+        </div>
+      </section>
+
+      <!-- STAGE 8: ILLUSTRATIVE CAPABILITY BENCHMARK -->
+      <section class="stage" id="stage-8">
+        <div class="agg-wrap">
+          <div class="agg-card">
+            <div class="agg-head">
+              <div class="title">System Capability Comparison</div>
+              <div class="sub placeholder-note">Illustrative capability profile · placeholder values (replace with benchmark data)</div>
+            </div>
+            <svg id="agg-radar" viewBox="0 0 500 372" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="agg-legend" id="agg-legend"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE 9: MANUSCRIPT FIGURES -->
+      <section class="stage" id="stage-9">
+        <div class="emg-wrap">
+          <div class="emg-head">
+            <div class="title">OptoVLab · System Overview</div>
+            <div class="sub">Selected manuscript figures · architecture, data mining, and device-level modeling</div>
+          </div>
+          <div class="emg-row">
+            <div class="emg-card figure-card wide" id="emg-b">
+              <div class="emg-ctitle">Figure 1 · Feedback-driven OptoVLab architecture</div>
+              <img class="emg-img" src="imgs/optovlab_figure1.svg" alt="OptoVLab architecture" />
+            </div>
+            <div class="emg-card figure-card" id="emg-c">
+              <div class="emg-ctitle">Figure 2 · OLED database construction</div>
+              <img class="emg-img" src="imgs/optovlab_figure2.jpg" alt="OLED literature mining and database analysis" />
+            </div>
+            <div class="emg-card figure-card" id="emg-d">
+              <div class="emg-ctitle">Figure 3 · Device-level OLED-GAT</div>
+              <img class="emg-img" src="imgs/optovlab_figure3.jpg" alt="OLED-GAT device-level modeling and prediction" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div id="bottombar" style="display: none;;">
+      <div class="dots" id="dots"></div>
+      <div class="stage-label" id="stage-label"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1. FIT-TO-VIEWPORT (never scroll; scale 1280x720 to window)
+   ============================================================ */
+const STAGE_W=1280, STAGE_H=720;
+const stageEl=document.getElementById('stage');
+function fit(){
+  const s=Math.min(window.innerWidth/(STAGE_W+48), window.innerHeight/(STAGE_H+48));
+  stageEl.style.transform='scale('+s+')';
+}
+window.addEventListener('resize',fit); fit();
+
+/* ============================================================
+   2. CONTENT
+   ============================================================ */
+const STEPS=[
+  {n:1,lbl:'Research Input'},
+  {n:2,lbl:'Data Mining'},
+  {n:3,lbl:'Device Modeling'},
+  {n:4,lbl:'Experiment Planning'},
+  {n:5,lbl:'Scientific Critic Agent'},
+  {n:6,lbl:'Feedback Loop'},
+  {n:7,lbl:'Results'},
+  {n:8,lbl:'Benchmark'},
+  {n:9,lbl:'Overview'},
+];
+
+const SYNTH_JSON =
+`{
+  "objective": "maximize EQE of a solution-processed 4CzIPN OLED",
+  "baseline_eqe": "18.6%",
+  "experimental_budget": "≤ 7 rounds",
+  "evidence_inputs": [
+    "structured OLED database",
+    "external literature via RAG",
+    "OLED-GAT quantile predictions",
+    "laboratory constraints"
+  ],
+  "candidate_ranking": {
+    "status": "illustrative demo; not a reported benchmark",
+    "items": [
+      { "priority": "A", "target_layer": "HBL", "material": "PPF", "rationale": "deeper-HOMO barrier expected; HOMO −6.7 eV" },
+      { "priority": "B", "target_layer": "HBL", "material": "PO-T2T" },
+      { "priority": "C", "target_layer": "ETL", "material": "ANT-BIZ" }
+    ]
+  },
+  "next_experiment": {
+    "round": 4,
+    "change": "insert PPF hole-blocking layer",
+    "controls": "retain baseline EML and fabrication protocol",
+    "human_approval_required": true
+  }
+}`;
+
+const CRIT_JSON =
+`{
+  "scope": "shared supervision across all OptoVLab agents",
+  "assessment_scale": "demo confidence indicators",
+  "data_audit": {
+    "units_and_schema": "pass",
+    "layer_sequence": "pass",
+    "source_traceability": "pass"
+  },
+  "model_audit": {
+    "publication_grouped_split": "verified",
+    "leakage_risk": "mitigated by publication-grouped split",
+    "uncertainty_output": "Q10 / Q50 / Q90 retained"
+  },
+  "decision_audit": {
+    "physical_rationale": "PPF supports improved hole confinement",
+    "experimental_feasibility": "pass",
+    "human_review": "required"
+  },
+  "corrective_feedback": "Preserve the fabrication baseline; change one functional-layer variable in Round 4.",
+  "decision": "approve_with_monitoring"
+}`;
+
+const REPORT=[
+  {text:'[representation]  directed multilayer device graph\n',type:'prose'},
+  {text:'[nodes]           Anode / HTL / EML / ETL / Cathode + molecular descriptors\n',type:'prose'},
+  {text:'[edges]           adjacent organic interfaces\n',type:'prose'},
+  {text:'[global]          thickness, dopant ratio, fabrication variables\n',type:'prose'},
+  {text:'[target]          EQE quantiles Q10 / Q50 / Q90\n\n',type:'prose'},
+  {text:'Training OLED-GAT with a publication-grouped split ...\n',type:'prose'},
+  {text:'✓ publication-grouped validation\n✓ interface attention learned\n✓ uncertainty intervals evaluated\n\n',type:'prose'},
+  {text:'Held-out test   R² = 0.81   |   MAE = 2.56 percentage points\n',type:'prose'},
+  {text:'External TPPO  measured 10.0%  |  interval 6.5–11.2%\n',type:'prose'},
+  {text:'External BPAO₂ measured 22.5%  |  interval 21.2–25.6%\n',type:'prose'},
+  {text:'\n[ready] performance predictor registered in shared environment',type:'prose'},
+];
+
+const SCORES=[
+  {k:'Data Integrity',v:0.94},
+  {k:'Source Traceability',v:0.97},
+  {k:'Schema Consistency',v:0.95},
+  {k:'Leakage Prevention',v:0.92},
+  {k:'Physical Plausibility',v:0.91},
+  {k:'Experimental Feasibility',v:0.93},
+  {k:'Overall Confidence',v:0.94},
+];
+
+const RXN6={
+  temperature:'PPF hole-blocking layer', pressure:'uncertainty-aware screening',
+  catalyst:'26.5%', aqueous:'+42% vs baseline',
+  mechanism:'In this illustrative decision trace, the agent prioritizes PPF after combining retrieved OLED evidence, OLED-GAT uncertainty-aware screening, and experimental constraints. Its deeper HOMO level (−6.7 eV versus −5.9 eV for mCP) is expected to support stronger hole confinement near the emissive layer.',
+  reasoning:'The measured device result is written to decision memory immediately. Validated architecture, fabrication conditions, and EQE are then accumulated for database expansion and batch OLED-GAT retraining before candidates are re-ranked.',
+  match:'Best observed EQE reached in Round 4; Rounds 5–7 produced no further improvement.',
+};
+
+/* ----- stage 2: literature-to-database extraction dashboard ----- */
+const DR_PLAN='21,580 candidate papers (2000–2025) → 20,190 full texts → 11 domain tools → traceable OLED records';
+const SUBAGENTS=[
+  {name:'Literature retrieval',    focus:'relevance screening · deduplication'},
+  {name:'Document parsing',        focus:'PDF · tables · figures · SI'},
+  {name:'Molecular recognition',   focus:'chemical names · structures · SMILES'},
+  {name:'Device extraction',       focus:'layers · thickness · doping · process'},
+  {name:'Standardization & QA',    focus:'units · schema · provenance · conflicts'},
+];
+const SEARCHES=[
+  {q:'OLED external quantum efficiency device architecture', n:'PASS', results:[
+    {t:'Screened title, abstract, DOI, and relevance', d:'retrieval'},
+    {t:'Deduplicated papers and linked supporting files', d:'corpus'},
+    {t:'20,190 full-text articles retained', d:'verified'},
+  ]},
+  {q:'parse device tables, captions, figures, and SI', n:'PASS', results:[
+    {t:'Recovered multilayer device stacks', d:'PDF/OCR'},
+    {t:'Resolved table headers and cross-references', d:'parser'},
+    {t:'Retained source evidence and bibliographic references', d:'trace'},
+  ]},
+  {q:'extract molecular structures and normalized identities', n:'PASS', results:[
+    {t:'Recognized host, dopant, and transport materials', d:'chemistry'},
+    {t:'Mapped names to structures and identifiers', d:'resolver'},
+    {t:'Flagged ambiguous material mentions', d:'critic'},
+  ]},
+  {q:'normalize OLED layers, fabrication, and performance', n:'PASS', results:[
+    {t:'Anode / HTL / EML / ETL / Cathode', d:'architecture'},
+    {t:'Thickness, dopant ratio, and fabrication conditions', d:'process'},
+    {t:'EQE and related performance values', d:'metrics'},
+  ]},
+  {q:'validate schema, units, layer order, and provenance', n:'PASS', results:[
+    {t:'Scientific Critic Agent flagged extraction conflicts', d:'audit'},
+    {t:'Ambiguous records returned for expert review', d:'repair'},
+    {t:'19,175 traceable device records accepted', d:'database'},
+  ]},
+];
+const DOMAINS=[
+  {name:'Candidate papers', count:21580},
+  {name:'Full-text retained', count:20190},
+  {name:'OLED device records', count:19175},
+];
+const DR_TOTAL=19175;
+const FINDINGS=[
+  {text:'Unified schema links material identity, device architecture, fabrication conditions, and performance', cites:'SCHEMA'},
+  {text:'Each record preserves document and local evidence provenance for scientific audit', cites:'TRACE'},
+  {text:'Multilayer records support device-level rather than isolated-molecule modeling', cites:'DEVICE'},
+  {text:'Validated data expand the database after each experimental feedback batch', cites:'LOOP'},
+];
+
+/* ============================================================
+   3. BUILD STATIC UI (stepper, dots, scorecard, network)
+   ============================================================ */
+const stepperEl=document.getElementById('stepper');
+STEPS.forEach((s,i)=>{
+  const step=document.createElement('div'); step.className='step'; step.id='step-'+s.n;
+  step.innerHTML='<span class="num">'+s.n+'</span><span class="lbl">'+s.lbl+'</span>';
+  step.title='Skip to '+s.lbl;
+  step.addEventListener('click',()=>skipToStage(s.n));
+  stepperEl.appendChild(step);
+  if(i<STEPS.length-1){const b=document.createElement('span');b.className='bar';stepperEl.appendChild(b);}
+});
+const dotsEl=document.getElementById('dots');
+STEPS.forEach(s=>{const d=document.createElement('span');d.className='pdot';d.id='dot-'+s.n;dotsEl.appendChild(d);});
+
+const scorecardEl=document.getElementById('scorecard');
+SCORES.forEach((s,i)=>{
+  const row=document.createElement('div');row.className='score-row';
+  row.innerHTML='<div class="top"><span class="k">'+s.k+'</span><span class="v" id="sv-'+i+'">0.00</span></div>'+
+                '<div class="score-bar"><span class="f" id="sf-'+i+'"></span></div>';
+  scorecardEl.appendChild(row);
+});
+
+/* ----- stage 2: deep-research dashboard ----- */
+const domMax=Math.max(...DOMAINS.map(d=>d.count));
+function buildResearch(){
+  // subagent rows
+  const al=document.getElementById('dr-agent-list');
+  al.innerHTML=SUBAGENTS.map((s,i)=>
+    '<div class="dr-agent" id="dr-agent-'+i+'"><span class="ai"></span>'+
+    '<div><div class="an">'+s.name+'</div><div class="af">'+s.focus+'</div></div>'+
+    '<span class="ac" id="dr-ac-'+i+'"></span></div>').join('');
+  // search feed (queries + result rows, all hidden until streamed)
+  const fs=document.getElementById('dr-feed-scroll');
+  fs.innerHTML=SEARCHES.map((s,i)=>
+    '<div class="dr-q" id="dr-q-'+i+'"><span class="qi">'+
+    '<svg viewBox="-0.5 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<path d="M22 11.8201C22 9.84228 21.4135 7.90885 20.3147 6.26436C19.2159 4.61987 17.6542 3.33813 15.8269 2.58126C13.9996 1.82438 11.9889 1.62637 10.0491 2.01223C8.10927 2.39808 6.32748 3.35052 4.92896 4.74904C3.53043 6.14757 2.578 7.92935 2.19214 9.86916C1.80629 11.809 2.00436 13.8197 2.76123 15.6469C3.51811 17.4742 4.79985 19.036 6.44434 20.1348C8.08883 21.2336 10.0222 21.8201 12 21.8201" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M2 11.8201H22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M12 21.8201C10.07 21.8201 8.5 17.3401 8.5 11.8201C8.5 6.30007 10.07 1.82007 12 1.82007C13.93 1.82007 15.5 6.30007 15.5 11.8201" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M18.3691 21.6901C20.3021 21.6901 21.8691 20.1231 21.8691 18.1901C21.8691 16.2571 20.3021 14.6901 18.3691 14.6901C16.4361 14.6901 14.8691 16.2571 14.8691 18.1901C14.8691 20.1231 16.4361 21.6901 18.3691 21.6901Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="M22.9998 22.8202L20.8398 20.6702" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '</svg></span>'+
+    '<span class="qt">'+s.q+'</span><span class="qn">'+s.n+'</span></div>'+
+    s.results.map((r,j)=>
+      '<div class="dr-r" id="dr-r-'+i+'-'+j+'"><span class="rt">'+r.t+'</span>'+
+      '<span class="rd">'+r.d+'</span></div>').join('')).join('');
+  // domain bars
+  const dd=document.getElementById('dr-domains');
+  dd.innerHTML=DOMAINS.map((d,i)=>
+    '<div class="dr-dom" id="dr-dom-'+i+'"><div class="dtop"><span class="dn">'+d.name+'</span>'+
+    '<span class="dv" id="dr-dv-'+i+'">0</span></div>'+
+    '<div class="dr-dom-bar"><span class="f" id="dr-df-'+i+'"></span></div></div>').join('')+
+    '<div class="dr-dom-more" id="dr-dom-more">2000–2025 coverage · 11 domain-specific tools</div>';
+  // findings
+  document.getElementById('dr-findings').innerHTML=FINDINGS.map((f,i)=>
+    '<div class="dr-find" id="dr-find-'+i+'">'+f.text+
+    '<span class="tok-cite">'+f.cites+'</span></div>').join('');
+}
+buildResearch();
+
+/* ----- feedback-driven research graph ----- */
+const SVGNS='http://www.w3.org/2000/svg';
+const NODES=[
+  {id:'papers',x:65,y:105,r:34,label:'Literature',kind:'start',svg:null},
+  {id:'data',x:220,y:105,r:34,label:'OLED DB',kind:'inter',svg:null},
+  {id:'model',x:380,y:105,r:36,label:'OLED-GAT',kind:'inter',svg:null},
+  {id:'rxn1',x:535,y:105,kind:'rxn-hydro',label:'Rank'},
+  {id:'rxn2',x:690,y:105,kind:'rxn-bio',label:'Experiment'},
+  {id:'validated',x:845,y:105,r:36,label:'New data',kind:'hub',svg:null},
+  {id:'TGT',x:925,y:220,r:42,label:'26.5% EQE',kind:'target',svg:null},
+  {id:'dbupdate',x:330,y:360,kind:'rxn-surface',label:'DB update'},
+  {id:'modelupdate',x:520,y:360,kind:'rxn-hydro',label:'Model update'},
+  {id:'rxn6',x:705,y:360,kind:'rxn-bio',label:'Round 4',highRecall:true},
+  {id:'memory',x:865,y:360,r:42,label:'Decision memory',kind:'hub',svg:null},
+];
+const EDGES=[
+  ['papers','data'],['data','model'],['model','rxn1'],['rxn1','rxn2'],['rxn2','validated'],['validated','TGT'],
+  ['rxn2','rxn6'],['rxn6','memory'],
+  ['memory','rxn1','feedback'],
+  ['rxn6','modelupdate','feedback'],['modelupdate','model','feedback'],
+  ['rxn6','dbupdate','feedback'],['dbupdate','data','feedback'],
+];
+const KIND_COLOR={start:'#6c7c9c',inter:'#7C8CF8',hub:'#F59E0B','rxn-hydro':'#7C8CF8','rxn-surface':'#F59E0B','rxn-bio':'#2DD4BF',target:'#22C55E'};
+const nodeById=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const rxnSvg=document.getElementById('rxn-svg');
+function nodeRadius(n){return n.kind.startsWith('rxn')?18:(n.r||27);}
+function buildNetwork(){
+  rxnSvg.innerHTML='';
+  // arrowhead markers (solid research flow, orange dashed feedback)
+  const defs=document.createElementNS(SVGNS,'defs');
+  defs.innerHTML=
+    "<marker id='ah-react' markerWidth='9' markerHeight='9' refX='6.6' refY='3' orient='auto' markerUnits='userSpaceOnUse'><path d='M0,0 L7,3 L0,6 Z' fill='#5d6e90'/></marker>"+
+    "<marker id='ah-feedback' markerWidth='9' markerHeight='9' refX='6.6' refY='3' orient='auto' markerUnits='userSpaceOnUse'><path d='M0,0 L7,3 L0,6 Z' fill='#F59E0B'/></marker>";
+  rxnSvg.appendChild(defs);
+  // edges first (under nodes)
+  EDGES.forEach((e,i)=>{
+    const a=nodeById[e[0]], b=nodeById[e[1]];
+    const product=e[2]==='feedback';                  // feedback edges are orange + dashed
+    const ar=nodeRadius(a), br=nodeRadius(b);
+    const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+    const x1=a.x+ux*(ar+2), y1=a.y+uy*(ar+2);         // trim to node borders so arrowheads sit cleanly
+    const x2=b.x-ux*(br+7), y2=b.y-uy*(br+7);
+    const len=Math.hypot(x2-x1,y2-y1);
+    const p=document.createElementNS(SVGNS,'line');
+    p.setAttribute('x1',x1);p.setAttribute('y1',y1);p.setAttribute('x2',x2);p.setAttribute('y2',y2);
+    p.setAttribute('stroke-width','1.7');
+    if(product){
+      p.setAttribute('stroke','#F59E0B');p.setAttribute('stroke-dasharray','7 5');
+      p.setAttribute('marker-end','url(#ah-feedback)');p.setAttribute('class','nedge product feedback');
+    }else{
+      p.setAttribute('stroke','#46567a');
+      p.setAttribute('stroke-dasharray',len);p.style.setProperty('--len',len);
+      p.setAttribute('marker-end','url(#ah-react)');p.setAttribute('class','nedge');
+    }
+    p.dataset.i=i;
+    rxnSvg.appendChild(p);
+  });
+  // nodes
+  NODES.forEach((n,i)=>{
+    const g=document.createElementNS(SVGNS,'g');g.setAttribute('class','nnode');g.dataset.i=i;
+    const col=KIND_COLOR[n.kind];
+    if(n.kind.startsWith('rxn')){
+      const w=Math.max(74,Math.min(112,n.label.length*8+22)),h=34;
+      const rect=document.createElementNS(SVGNS,'rect');
+      rect.setAttribute('x',n.x-w/2);rect.setAttribute('y',n.y-h/2);rect.setAttribute('width',w);rect.setAttribute('height',h);rect.setAttribute('rx',8);
+      if(n.highRecall){           // outlined "high recall (>75%)" box
+        rect.setAttribute('fill','#f3f6fc');rect.setAttribute('stroke',col);rect.setAttribute('stroke-width','2.6');
+        rect.setAttribute('filter','drop-shadow(0 0 7px '+col+'66)');
+      }else{
+        rect.setAttribute('fill',col);rect.setAttribute('opacity','.95');
+        rect.setAttribute('filter','drop-shadow(0 0 6px '+col+'88)');
+      }
+      g.appendChild(rect);
+      const t=document.createElementNS(SVGNS,'text');
+      t.setAttribute('x',n.x);t.setAttribute('y',n.y+5);t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','14');t.setAttribute('font-weight','700');
+      t.setAttribute('fill',n.highRecall?'#1b2438':'#0a0e1a');
+      t.setAttribute('font-family',"'JetBrains Mono',monospace");t.textContent=n.label;
+      g.appendChild(t);
+    }else{
+      const r=n.r||27;
+      const c=document.createElementNS(SVGNS,'circle');      // white molecule chip with colored ring
+      c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',r);
+      c.setAttribute('fill','#ffffff');c.setAttribute('stroke',col);
+      c.setAttribute('stroke-width',n.kind==='target'?3.4:2.3);
+      if(n.kind==='target')c.setAttribute('filter','drop-shadow(0 0 13px '+col+')');
+      g.appendChild(c);
+      if(n.svg){                                              // embed the molecule SVG, clipped to the chip
+        const clipId='clip-'+n.id;
+        const cp=document.createElementNS(SVGNS,'clipPath');cp.setAttribute('id',clipId);
+        const cc=document.createElementNS(SVGNS,'circle');cc.setAttribute('cx',n.x);cc.setAttribute('cy',n.y);cc.setAttribute('r',r-1.5);
+        cp.appendChild(cc);g.appendChild(cp);
+        const img=document.createElementNS(SVGNS,'image');
+        img.setAttributeNS('http://www.w3.org/1999/xlink','href','molecules/'+n.svg);
+        img.setAttribute('href','molecules/'+n.svg);
+        img.setAttribute('x',n.x-r);img.setAttribute('y',n.y-r);img.setAttribute('width',2*r);img.setAttribute('height',2*r);
+        img.setAttribute('preserveAspectRatio','xMidYMid meet');
+        img.setAttribute('clip-path','url(#'+clipId+')');
+        g.appendChild(img);
+      }else{                                                  // text-only workflow node
+        const words=n.label.split(' ');
+        const t=document.createElementNS(SVGNS,'text');
+        t.setAttribute('x',n.x);t.setAttribute('text-anchor','middle');
+        t.setAttribute('font-weight','700');t.setAttribute('fill',n.kind==='target'?'#168064':'#4355c4');
+        t.setAttribute('font-size',words.length>1?'12':'14');
+        if(words.length>1){
+          t.setAttribute('y',n.y-4);
+          words.forEach((w,k)=>{const ts=document.createElementNS(SVGNS,'tspan');ts.setAttribute('x',n.x);ts.setAttribute('dy',k===0?'0':'15');ts.textContent=w;t.appendChild(ts);});
+        }else{t.setAttribute('y',n.y+5);t.textContent=n.label;}
+        g.appendChild(t);
+      }
+    }
+    rxnSvg.appendChild(g);
+  });
+}
+buildNetwork();
+
+/* ============================================================
+   4b. RESULTS RADARS (Figure 2a) — build once, animate in stage 7
+   ============================================================ */
+const RADAR_DATA={
+  axes:['Literature|Grounding','Extraction|Fidelity','Schema|Compliance',
+        'Device|Reasoning','Uncertainty|Awareness','Candidate|Ranking',
+        'Physical|Plausibility','Experimental|Efficiency','Feedback|Adaptation'],
+  labels:[], colors:[], zOrder:[], models:[]
+};
+const RADAR_CX=190, RADAR_CY=150, RADAR_R=104, RADAR_N=9;
+function radarPoint(cx,cy,R,k,v){const a=k*(2*Math.PI/RADAR_N),r=R*v/10;return {x:cx+r*Math.sin(a),y:cy-r*Math.cos(a)};}
+function ptsStr(pts){return pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');}
+const RADAR_PANELS=[];
+const mkEl=(t,c)=>{const e=document.createElementNS(SVGNS,t);if(c)e.setAttribute('class',c);return e;};
+// draw the shared grid (rings+spokes+ticks) + 9 two-line axis labels into an svg
+function drawRadarFrame(svg,cx,cy,R){
+  const N=RADAR_N;
+  const gGrid=mkEl('g','rgrid-group');
+  [2,4,6,8,10].forEach(rv=>{
+    const poly=mkEl('polygon','rgrid'+(rv===10?' router':''));
+    poly.setAttribute('points',ptsStr(Array.from({length:N},(_,k)=>radarPoint(cx,cy,R,k,rv))));
+    gGrid.appendChild(poly);
+  });
+  for(let k=0;k<N;k++){
+    const p=radarPoint(cx,cy,R,k,10), ln=mkEl('line','rspoke');
+    ln.setAttribute('x1',cx);ln.setAttribute('y1',cy);
+    ln.setAttribute('x2',p.x.toFixed(1));ln.setAttribute('y2',p.y.toFixed(1));
+    gGrid.appendChild(ln);
+  }
+  [2,4,6,8].forEach(tv=>{
+    const t=mkEl('text','rtick');
+    t.setAttribute('x',cx+6);t.setAttribute('y',(cy-R*tv/10+3).toFixed(1));
+    t.setAttribute('text-anchor','start');t.textContent=tv;
+    gGrid.appendChild(t);
+  });
+  svg.appendChild(gGrid);
+  const gLab=mkEl('g','rlabel-group');
+  for(let k=0;k<N;k++){
+    const a=k*(2*Math.PI/N), s=Math.sin(a), c=Math.cos(a), p=radarPoint(cx,cy,R,k,10);
+    const t=mkEl('text','rlbl'); let anchor='middle', lx=p.x, ly;
+    if(s>0.2){anchor='start';lx=p.x+10;}
+    else if(s<-0.2){anchor='end';lx=p.x-10;}
+    const parts=RADAR_DATA.axes[k].split('|');
+    if(anchor==='middle') ly = (c>0 ? p.y-13-11*(parts.length-1) : p.y+14);
+    else ly = p.y - (parts.length>1?4:0);
+    t.setAttribute('text-anchor',anchor);
+    t.setAttribute('x',lx.toFixed(1));t.setAttribute('y',ly.toFixed(1));
+    parts.forEach((w,i)=>{
+      const ts=document.createElementNS(SVGNS,'tspan');
+      ts.setAttribute('x',lx.toFixed(1));ts.setAttribute('dy',i===0?'0':'11');
+      ts.textContent=w;t.appendChild(ts);
+    });
+    gLab.appendChild(t);
+  }
+  svg.appendChild(gLab);
+}
+// add one profile polygon (collapsed at center) + its vertex dots; returns handles
+function addProfile(svg,cx,cy,R,values,color){
+  const N=RADAR_N;
+  const target=values.map((v,k)=>radarPoint(cx,cy,R,k,v));
+  const collapsed=ptsStr(Array.from({length:N},()=>({x:cx,y:cy})));
+  const poly=mkEl('polygon','rprof');
+  poly.setAttribute('points',collapsed);
+  poly.style.stroke=color; poly.style.fill=color;   // inline style: SVG attrs don't resolve var()
+  svg.appendChild(poly);
+  const dots=target.map(pt=>{
+    const d=mkEl('circle','rdot');
+    d.setAttribute('cx',pt.x.toFixed(1));d.setAttribute('cy',pt.y.toFixed(1));d.setAttribute('r',2.6);
+    d.style.fill=color; svg.appendChild(d); return d;
+  });
+  return {poly,dots,target};
+}
+function buildRadars(){
+  if(RADAR_DATA.models.length===0)return;
+  RADAR_DATA.models.forEach((m,mi)=>{
+    const svg=document.getElementById('radar-'+mi);
+    if(!svg)return;
+    svg.innerHTML='';
+    drawRadarFrame(svg,RADAR_CX,RADAR_CY,RADAR_R);
+    const P={cx:RADAR_CX,cy:RADAR_CY,prof:[],dots:[],targets:[]};
+    RADAR_DATA.zOrder.forEach(pi=>{
+      const {poly,dots,target}=addProfile(svg,RADAR_CX,RADAR_CY,RADAR_R,m.profiles[pi],RADAR_DATA.colors[pi]);
+      P.prof[pi]=poly; P.dots[pi]=dots; P.targets[pi]=target;
+    });
+    RADAR_PANELS[mi]=P;
+  });
+  // ---- shared legend ----
+  const el=document.getElementById('results-legend');
+  if(el){
+    el.innerHTML='';
+    RADAR_DATA.labels.forEach((lb,pi)=>{
+      const item=document.createElement('div');item.className='rlgd-item';item.id='rlgd-'+pi;
+      const sw=document.createElement('span');sw.className='rlgd-sw';
+      sw.style.color=RADAR_DATA.colors[pi];
+      sw.style.borderColor=RADAR_DATA.colors[pi];
+      sw.style.background='color-mix(in srgb, '+RADAR_DATA.colors[pi]+' 16%, transparent)';
+      const tx=document.createElement('span');tx.textContent=lb;
+      item.appendChild(sw);item.appendChild(tx);el.appendChild(item);
+    });
+  }
+}
+buildRadars();
+
+/* ============================================================
+   4c. ILLUSTRATIVE CAPABILITY RADAR — placeholder values
+   ============================================================ */
+const AGG_DATA={
+  // Placeholder values only; replace after a formal benchmark is completed.
+  models:[
+    {name:'Static workflow',       icon:'imgs/agent_decision.svg',color:'var(--surface)', values:[7.0,6.4,6.8,5.2,3.0,5.3,6.1,4.2,2.0]},
+    {name:'Tool-augmented agents', icon:'imgs/agent_model.svg',   color:'var(--hydro)',   values:[8.3,8.0,8.2,7.6,6.9,7.5,7.8,6.7,5.8]},
+    {name:'Full OptoVLab',         icon:'imgs/optovlab_favicon.svg',color:'var(--bio)',   values:[9.3,9.0,9.2,8.8,8.6,9.1,9.0,9.3,9.5]},
+  ],
+  revealOrder:[0,1,2],
+  zOrder:[2,1,0],
+};
+const AGG_CX=250, AGG_CY=192, AGG_R=150;
+let AGG_PANEL=null;
+function buildAggRadar(){
+  const svg=document.getElementById('agg-radar'); if(!svg)return;
+  svg.innerHTML='';
+  drawRadarFrame(svg,AGG_CX,AGG_CY,AGG_R);
+  const P={cx:AGG_CX,cy:AGG_CY,prof:[],dots:[],targets:[]};
+  AGG_DATA.zOrder.forEach(pi=>{
+    const m=AGG_DATA.models[pi];
+    const {poly,dots,target}=addProfile(svg,AGG_CX,AGG_CY,AGG_R,m.values,m.color);
+    P.prof[pi]=poly; P.dots[pi]=dots; P.targets[pi]=target;
+  });
+  AGG_PANEL=P;
+  const el=document.getElementById('agg-legend');
+  if(el){
+    el.innerHTML='';
+    AGG_DATA.models.forEach((m,pi)=>{
+      const item=document.createElement('div');item.className='rlgd-item';item.id='agg-lgd-'+pi;
+      item.innerHTML='<span class="agent-icon has-img agg-ico"><img src="'+m.icon+'" alt="'+m.name+'"></span>'+
+                     '<span class="rlgd-sw"></span><span class="agg-lgd-name">'+m.name+'</span>';
+      const sw=item.querySelector('.rlgd-sw');
+      sw.style.color=m.color; sw.style.borderColor=m.color;
+      sw.style.background='color-mix(in srgb, '+m.color+' 16%, transparent)';
+      el.appendChild(item);
+    });
+  }
+}
+buildAggRadar();
+
+/* ============================================================
+   5. AUTOREGRESSIVE TYPING ENGINE
+   ============================================================ */
+let speed=1, runId=0, paused=false;
+const activeTimers=new Set();   // in-flight sleeps, so pause/resume can freeze them
+/* pause-aware sleep: a resumable setTimeout — pausing clears the timer and banks the
+   remaining time, resuming re-arms it (keeps setTimeout semantics; works headless too). */
+function sleep(ms){
+  return new Promise(resolve=>{
+    const t={remaining:ms/speed,startedAt:0,id:0};
+    function arm(){ t.startedAt=Date.now(); t.id=setTimeout(()=>{activeTimers.delete(t);resolve();},t.remaining); }
+    t.pause=()=>{ clearTimeout(t.id); t.remaining-=Date.now()-t.startedAt; };
+    t.resume=arm;
+    activeTimers.add(t);
+    if(!paused) arm();
+  });
+}
+
+function tokenizeJSON(s){
+  const toks=[];let i=0;const isWs=c=>c===' '||c==='\n'||c==='\t';
+  while(i<s.length){
+    const c=s[i];
+    if(isWs(c)){let j=i;while(j<s.length&&isWs(s[j]))j++;toks.push({text:s.slice(i,j),type:'ws'});i=j;continue;}
+    if('{}[]:,'.includes(c)){toks.push({text:c,type:'punct'});i++;continue;}
+    if(c==='"'){let j=i+1;while(j<s.length){if(s[j]==='\\'){j+=2;continue;}if(s[j]==='"'){j++;break;}j++;}
+      let k=j;while(k<s.length&&isWs(s[k]))k++;
+      toks.push({text:s.slice(i,j),type:s[k]===':'?'key':'string'});i=j;continue;}
+    if(c==='-'||(c>='0'&&c<='9')){let j=i;while(j<s.length&&/[0-9eE+.\-]/.test(s[j]))j++;toks.push({text:s.slice(i,j),type:'number'});i=j;continue;}
+    const m=s.slice(i).match(/^(true|false|null)/);
+    if(m){toks.push({text:m[0],type:'bool'});i+=m[0].length;continue;}
+    toks.push({text:c,type:'punct'});i++;
+  }
+  return toks;
+}
+function splitPieces(t,n){
+  if(n<=1)return t.split('');
+  const out=[];for(let i=0;i<t.length;i+=n)out.push(t.slice(i,i+n));return out;
+}
+async function streamRich(el,segs,opts,my){
+  el.innerHTML='';el.scrollTop=0;
+  const caret=document.createElement('span');caret.className='caret';el.appendChild(caret);
+  const WHOLE=new Set(['cite','refnum','ref']);
+  for(const seg of segs){
+    if(my!==runId)return;
+    if(seg.type==='ws'){
+      const sp=document.createElement('span');sp.className='tok tok-ws';sp.textContent=seg.text;
+      el.insertBefore(sp,caret);el.scrollTop=el.scrollHeight;await sleep(opts.delay*0.25);continue;
+    }
+    const pieces=WHOLE.has(seg.type)?[seg.text]:splitPieces(seg.text,opts.piece);
+    for(const pc of pieces){
+      if(my!==runId)return;
+      const sp=document.createElement('span');sp.className='tok tok-'+seg.type+' glow';sp.textContent=pc;
+      el.insertBefore(sp,caret);el.scrollTop=el.scrollHeight;
+      setTimeout(()=>sp.classList.remove('glow'),260);
+      await sleep(WHOLE.has(seg.type)?opts.delay*3:opts.delay);
+    }
+  }
+  caret.remove();
+}
+
+/* ============================================================
+   6. STAGE / NAV HELPERS
+   ============================================================ */
+const labelEl=document.getElementById('stage-label');
+const coverEl=document.getElementById('cover');
+const brandDock=document.getElementById('brand-dock');
+const topbarEl=document.getElementById('topbar');
+function setStage(n){
+  topbarEl.classList.remove('hide');
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  document.getElementById('stage-'+n).classList.add('active');
+  STEPS.forEach(s=>{
+    const st=document.getElementById('step-'+s.n);
+    st.classList.toggle('active',s.n===n);st.classList.toggle('done',s.n<n);
+    const d=document.getElementById('dot-'+s.n);
+    d.classList.toggle('active',s.n===n);d.classList.toggle('done',s.n<n);
+  });
+  labelEl.innerHTML='Stage <b>'+n+'</b> / '+STEPS.length+' · '+STEPS[n-1].lbl;
+}
+function enterCoverState(){
+  // hide the top chrome on the title scene; setStage re-shows it at stage 1
+  topbarEl.classList.add('hide');
+  // hide any active pipeline stage
+  document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+  // clear stepper + dots (setStage only handles 1..6, never the cover) so stage-6 chrome
+  // never lingers behind the title on loop restart
+  STEPS.forEach(s=>{
+    document.getElementById('step-'+s.n).classList.remove('active','done');
+    document.getElementById('dot-'+s.n).classList.remove('active','done');
+  });
+  labelEl.innerHTML='<b>OptoVLab</b> · Title';
+  // show cover; snap the dock back to its large centered state instantly (no reverse-fly)
+  coverEl.classList.remove('hide');
+  brandDock.style.transition='none';
+  brandDock.classList.remove('docked');
+  void brandDock.offsetWidth;          // force reflow so the un-dock applies without animating
+  brandDock.style.transition='';       // re-enable transitions for the upcoming dock animation
+}
+function resetAll(){
+  document.querySelectorAll('.substep,.chip').forEach(e=>e.classList.remove('lit'));
+  // ---- stage 2 deep-research dashboard ----
+  document.getElementById('dr-plan').innerHTML='';
+  document.querySelectorAll('.dr-agent').forEach(a=>{a.classList.remove('lit','ok');a.querySelector('.ac').textContent='';});
+  document.querySelectorAll('.dr-q,.dr-r,.dr-dom').forEach(e=>e.classList.remove('show'));
+  document.getElementById('dr-dom-more').classList.remove('show');
+  document.getElementById('dr-feed-scroll').style.transform='none';
+  document.getElementById('dr-feed-n').textContent='· 0 batches';
+  DOMAINS.forEach((d,i)=>{document.getElementById('dr-df-'+i).style.width='0';document.getElementById('dr-dv-'+i).textContent='0';});
+  document.querySelectorAll('.dr-find').forEach(e=>e.classList.remove('show'));
+  document.getElementById('dr-count').textContent='0';
+  document.getElementById('dr-done').classList.remove('show');
+  const ds=document.getElementById('dr-status');ds.classList.remove('done');ds.innerHTML='<span class="spin"></span> extracting…';
+  document.getElementById('report-doc').innerHTML='';
+  document.getElementById('synth-code').innerHTML='';
+  document.getElementById('crit-code').innerHTML='';
+  SCORES.forEach((s,i)=>{document.getElementById('sf-'+i).style.width='0';document.getElementById('sv-'+i).textContent='0.00';});
+  document.querySelectorAll('.nnode,.nedge').forEach(e=>e.classList.remove('show','focused','efocus'));
+  rxnSvg.classList.remove('focus-mode');
+  rxnSvg.setAttribute('viewBox','0 0 980 420');
+  document.getElementById('stage-6').classList.remove('show-detail');
+  document.querySelectorAll('#rxn-detail .rd-cell,#rxn-detail .rd-block,#rxn-detail .rd-match').forEach(e=>e.classList.remove('show'));
+  document.getElementById('rxn6-mech').innerHTML='';
+  document.getElementById('rxn6-reason').innerHTML='';
+  document.getElementById('rd-scroll').scrollTop=0;
+  // ---- stage 7 results radars ----
+  document.querySelectorAll('#stage-7 .rp-card').forEach(c=>c.classList.remove('in'));
+  document.querySelectorAll('#stage-7 .rgrid-group').forEach(g=>g.classList.remove('drawn'));
+  document.querySelectorAll('#stage-7 .rlabel-group').forEach(g=>g.classList.remove('shown'));
+  document.querySelectorAll('#stage-7 .rdot').forEach(d=>d.classList.remove('pop'));
+  document.querySelectorAll('#results-legend .rlgd-item').forEach(l=>l.classList.remove('lit'));
+  if(typeof RADAR_PANELS!=='undefined'){
+    RADAR_PANELS.forEach(P=>{
+      const col=ptsStr(Array.from({length:RADAR_N},()=>({x:P.cx,y:P.cy})));
+      P.prof.forEach(poly=>poly.setAttribute('points',col));
+    });
+  }
+  // ---- stage 8 overview radar ----
+  document.querySelectorAll('#stage-8 .agg-card').forEach(c=>c.classList.remove('in'));
+  document.querySelectorAll('#agg-radar .rgrid-group').forEach(g=>g.classList.remove('drawn'));
+  document.querySelectorAll('#agg-radar .rlabel-group').forEach(g=>g.classList.remove('shown'));
+  document.querySelectorAll('#agg-radar .rdot').forEach(d=>d.classList.remove('pop'));
+  document.querySelectorAll('#agg-legend .rlgd-item').forEach(l=>l.classList.remove('lit'));
+  if(typeof AGG_PANEL!=='undefined' && AGG_PANEL){
+    const aggCol=ptsStr(Array.from({length:RADAR_N},()=>({x:AGG_PANEL.cx,y:AGG_PANEL.cy})));
+    AGG_PANEL.prof.forEach(poly=>poly.setAttribute('points',aggCol));
+  }
+  // ---- stage 9 emergent properties ----
+  document.querySelectorAll('#stage-9 .emg-card').forEach(c=>c.classList.remove('in'));
+  document.querySelectorAll('#stage-9 .violin').forEach(v=>v.classList.remove('grown'));
+  document.querySelectorAll('#stage-9 .vbox,#stage-9 .vmed,#stage-9 .vaxis,#stage-9 .vtick').forEach(e=>e.classList.remove('shown'));
+  document.querySelectorAll('#stage-9 .hm-cell').forEach(c=>c.classList.remove('pop'));
+  document.querySelectorAll('#stage-9 .hm-bar').forEach(b=>{b.style.width='0';});
+  document.querySelectorAll('#stage-9 .hm-barval').forEach(t=>{t.textContent='';});
+
+}
+
+/* ============================================================
+   7. INDIVIDUAL STAGES
+   ============================================================ */
+async function stageCover(my){
+  // stage 0: paper title card, then dock the institution labels to the footer
+  enterCoverState();
+  await sleep(3600);
+  if(my!==runId)return;
+  coverEl.classList.add('hide');        // fade the backdrop out
+  brandDock.classList.add('docked');    // research institutions shrink to the bottom-left
+  await sleep(820);                      // > the .75s CSS dock transition
+}
+async function stageInput(my){
+  const s1=document.getElementById('stage-1');
+  // reset for clean replay (stepper re-entry / loop restart)
+  s1.querySelectorAll('.s1-in').forEach(el=>el.classList.remove('on'));
+  document.getElementById('instr-txt').innerHTML='';
+  setStage(1);
+  await sleep(680);if(my!==runId)return;                       // card frame settles in
+  s1.querySelector('.input-top').classList.add('on');          // header
+  await sleep(430);if(my!==runId)return;
+  s1.querySelector('.instr .lab').classList.add('on');         // "INSTRUCTIONS" label
+  await sleep(340);if(my!==runId)return;
+  await streamRich(document.getElementById('instr-txt'),[      // type the task, keep highlight teal
+    {text:'Improve the external quantum efficiency of a solution-processed ',type:'prose'},
+    {text:'4CzIPN OLED',type:'hl'},
+    {text:' from a baseline of 18.6%, with human approval and an experimental budget of no more than seven rounds.',type:'prose'}
+  ],{piece:2,delay:16},my);
+  if(my!==runId)return;
+  await sleep(280);if(my!==runId)return;
+  s1.querySelector('.flow-arrow').classList.add('on');         // arrow floats in
+  await sleep(360);if(my!==runId)return;
+  s1.querySelector('.target').classList.add('on');             // molecule + reticle pop in
+  await sleep(1400);
+}
+async function rampCount(el,from,to,my){
+  const N=Math.max(6,Math.min(22,Math.round(Math.abs(to-from)/6)));
+  for(let i=1;i<=N;i++){
+    if(my!==runId)return;
+    el.textContent=Math.round(from+(to-from)*(i/N)).toLocaleString('en-US');
+    await sleep(26);
+  }
+  el.textContent=to.toLocaleString('en-US');
+}
+function scrollFeedTo(el,fs){
+  const view=fs.parentElement.clientHeight;
+  const ty=Math.max(0,(el.offsetTop+el.offsetHeight)-view+8);
+  fs.style.transform='translateY('+(-ty)+'px)';
+}
+async function stageResearch(my){
+  setStage(2);await sleep(400);
+  // (a) orchestrator streams its research plan
+  await streamRich(document.getElementById('dr-plan'),[{text:DR_PLAN,type:'prose'}],{piece:3,delay:9},my);
+  if(my!==runId)return;await sleep(150);
+  // (b) deploy the 5 subagents in parallel (light up sequentially)
+  for(let i=0;i<SUBAGENTS.length;i++){
+    if(my!==runId)return;
+    document.getElementById('dr-agent-'+i).classList.add('lit');
+    await sleep(220);
+  }
+  await sleep(250);
+  // (c) live search feed: stream queries + results, tick the source counter,
+  //     flip each subagent to done as its search completes
+  const fs=document.getElementById('dr-feed-scroll');
+  const per=Math.round(DR_TOTAL/SEARCHES.length);
+  for(let i=0;i<SEARCHES.length;i++){
+    if(my!==runId)return;
+    const q=document.getElementById('dr-q-'+i);q.classList.add('show');scrollFeedTo(q,fs);
+    await sleep(240);
+    for(let j=0;j<SEARCHES[i].results.length;j++){
+      if(my!==runId)return;
+      const r=document.getElementById('dr-r-'+i+'-'+j);r.classList.add('show');scrollFeedTo(r,fs);
+      await sleep(110);
+    }
+    const ag=document.getElementById('dr-agent-'+i);ag.classList.add('ok');
+    document.getElementById('dr-ac-'+i).textContent='✓';
+    document.getElementById('dr-feed-n').textContent='· batch '+(i+1)+' / '+SEARCHES.length;
+    await rampCount(document.getElementById('dr-count'),per*i,Math.min(per*(i+1),DR_TOTAL),my);
+    if(my!==runId)return;await sleep(160);
+  }
+  document.getElementById('dr-count').textContent=DR_TOTAL.toLocaleString('en-US');
+  // (d) domain breakdown bars fill in
+  for(let i=0;i<DOMAINS.length;i++){
+    if(my!==runId)return;
+    document.getElementById('dr-dom-'+i).classList.add('show');
+    document.getElementById('dr-df-'+i).style.width=(DOMAINS[i].count/domMax*100)+'%';
+    rampCount(document.getElementById('dr-dv-'+i),0,DOMAINS[i].count,my);
+    await sleep(210);
+  }
+  document.getElementById('dr-dom-more').classList.add('show');
+  await sleep(320);
+  // (e) synthesized key findings stream in with citation badges
+  for(let i=0;i<FINDINGS.length;i++){
+    if(my!==runId)return;
+    document.getElementById('dr-find-'+i).classList.add('show');
+    await sleep(600);
+  }
+  if(my!==runId)return;
+  // (f) structured database ready
+  const ds=document.getElementById('dr-status');ds.classList.add('done');ds.innerHTML='✓ database ready';
+  document.getElementById('dr-done').classList.add('show');
+  await sleep(1600);
+}
+async function stageReport(my){
+  setStage(3);await sleep(450);
+  await streamRich(document.getElementById('report-doc'),REPORT,{piece:3,delay:11},my);
+  if(my!==runId)return;
+  await sleep(2600);
+}
+async function stageSynth(my){
+  setStage(4);await sleep(400);
+  const chips=document.querySelectorAll('#synth-chips .chip');
+  for(const c of chips){if(my!==runId)return;c.classList.add('lit');await sleep(260);}
+  await streamRich(document.getElementById('synth-code'),tokenizeJSON(SYNTH_JSON),{piece:2,delay:13},my);
+  if(my!==runId)return;await sleep(1400);
+}
+async function stageCritic(my){
+  setStage(5);await sleep(400);
+  const chips=document.querySelectorAll('#crit-chips .chip');
+  for(const c of chips){if(my!==runId)return;c.classList.add('lit');await sleep(260);}
+  // kick off score bars in parallel with streaming
+  SCORES.forEach((s,i)=>{
+    setTimeout(()=>{
+      if(my!==runId)return;
+      document.getElementById('sf-'+i).style.width=(s.v*100)+'%';
+      animateNum(document.getElementById('sv-'+i),s.v,my);
+    },(700+i*350)/speed);
+  });
+  await streamRich(document.getElementById('crit-code'),tokenizeJSON(CRIT_JSON),{piece:2,delay:13},my);
+  if(my!==runId)return;await sleep(1500);
+}
+async function animateNum(el,target,my){
+  const N=22;
+  for(let i=1;i<=N;i++){if(my!==runId)return;el.textContent=(target*(i/N)).toFixed(2);await sleep(36);}
+  el.textContent=target.toFixed(2);
+}
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+async function animateViewBox(tx,ty,tw,th,my){
+  const [sx,sy,sw,sh]=rxnSvg.getAttribute('viewBox').split(/\s+/).map(Number);
+  const N=28;
+  for(let i=1;i<=N;i++){
+    if(my!==runId)return;
+    const k=ease(i/N);
+    rxnSvg.setAttribute('viewBox',(sx+(tx-sx)*k)+' '+(sy+(ty-sy)*k)+' '+(sw+(tw-sw)*k)+' '+(sh+(th-sh)*k));
+    await sleep(26);
+  }
+}
+function fillRxn6(){
+  document.getElementById('rd-temp').textContent=RXN6.temperature;
+  document.getElementById('rd-pres').textContent=RXN6.pressure;
+  document.getElementById('rd-cat').textContent=RXN6.catalyst;
+  document.getElementById('rd-aq').textContent=RXN6.aqueous;
+  document.getElementById('rd-match').textContent=RXN6.match;
+}
+async function stageNetwork(my){
+  setStage(6);
+  rxnSvg.setAttribute('viewBox','0 0 980 420');
+  await sleep(450);
+  const nodes=[...rxnSvg.querySelectorAll('.nnode')];
+  const edges=[...rxnSvg.querySelectorAll('.nedge')];
+  // reveal left-to-right by x position
+  const order=NODES.map((n,i)=>({i,x:n.x})).sort((a,b)=>a.x-b.x);
+  for(const o of order){
+    if(my!==runId)return;
+    nodes[o.i].classList.add('show');
+    EDGES.forEach((e,ei)=>{
+      const srcIdx=NODES.findIndex(n=>n.id===e[0]);
+      if(nodes[srcIdx]&&nodes[srcIdx].classList.contains('show'))edges[ei].classList.add('show');
+    });
+    await sleep(170);
+  }
+  await sleep(900);
+  if(my!==runId)return;
+
+  // ---- emphasize the best validated round while keeping the full loop visible ----
+  const i6=NODES.findIndex(n=>n.id==='rxn6');
+  nodes[i6].classList.add('focused');
+  edges.forEach((ed,ei)=>{const e=EDGES[ei];if(e[0]==='rxn6'||e[1]==='rxn6')ed.classList.add('efocus');});
+  await animateViewBox(0,0,980,420,my);
+  if(my!==runId)return;
+
+  // ---- fly in the Reaction Details card ----
+  fillRxn6();
+  document.getElementById('stage-6').classList.add('show-detail');
+  await sleep(480);
+  for(const c of document.querySelectorAll('#rxn-detail .rd-cell')){
+    if(my!==runId)return; c.classList.add('show'); await sleep(120);
+  }
+  const mech=document.getElementById('rxn6-mech'), reason=document.getElementById('rxn6-reason');
+  // keep the scrollable card pinned to the newest typed text (self-clears on replay/skip)
+  const rdScroll=document.getElementById('rd-scroll');
+  const follow=setInterval(()=>{ if(my!==runId){clearInterval(follow);return;} rdScroll.scrollTop=rdScroll.scrollHeight; },60);
+  mech.closest('.rd-block').classList.add('show'); await sleep(220);
+  await streamRich(mech,[{text:RXN6.mechanism,type:'prose'}],{piece:3,delay:8},my);
+  if(my!==runId){clearInterval(follow);return;}
+  reason.closest('.rd-block').classList.add('show'); await sleep(180);
+  await streamRich(reason,[{text:RXN6.reasoning,type:'prose'}],{piece:3,delay:8},my);
+  if(my!==runId){clearInterval(follow);return;}
+  document.querySelector('#rxn-detail .rd-match').classList.add('show');
+  rdScroll.scrollTop=rdScroll.scrollHeight;
+  clearInterval(follow);
+  await sleep(3600);
+}
+
+/* ============================================================
+   8. TIMELINE LOOP + CONTROLS
+   ============================================================ */
+/* ---- radar animation helpers ---- */
+function backOut(t){const c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);}
+async function growPolygon(poly,cx,cy,pts,dur,my){
+  const N=24;
+  for(let i=1;i<=N;i++){
+    if(my!==runId)return;
+    const k=backOut(i/N);
+    poly.setAttribute('points',pts.map(p=>(cx+(p.x-cx)*k).toFixed(1)+','+(cy+(p.y-cy)*k).toFixed(1)).join(' '));
+    await sleep(dur/N);
+  }
+  if(my!==runId)return;
+  poly.setAttribute('points',ptsStr(pts));   // land exact
+}
+async function stageResults(my){
+  setStage(7);
+  await sleep(360); if(my!==runId)return;
+  // Results cards pop in left-to-right; their mini charts are static manuscript summaries.
+  for(const c of document.querySelectorAll('#stage-7 .rp-card')){ if(my!==runId)return; c.classList.add('in'); await sleep(150); }
+  await sleep(4200);
+}
+async function stageOverview(my){
+  setStage(8);
+  await sleep(360); if(my!==runId)return;
+  // (a) hero card pops in
+  const card=document.querySelector('#stage-8 .agg-card'); if(card)card.classList.add('in');
+  await sleep(260); if(my!==runId)return;
+  // (b) grid + spokes draw in, then axis labels fade in
+  const gg=document.querySelector('#agg-radar .rgrid-group'); if(gg)gg.classList.add('drawn');
+  await sleep(300); if(my!==runId)return;
+  const gl=document.querySelector('#agg-radar .rlabel-group'); if(gl)gl.classList.add('shown');
+  await sleep(320); if(my!==runId)return;
+  // (c) grow the 3 model profiles weakest -> best, lighting each legend entry as it lands
+  for(const pi of AGG_DATA.revealOrder){
+    if(my!==runId)return;
+    await growPolygon(AGG_PANEL.prof[pi],AGG_PANEL.cx,AGG_PANEL.cy,AGG_PANEL.targets[pi],680,my);
+    if(my!==runId)return;
+    AGG_PANEL.dots[pi].forEach(d=>d.classList.add('pop'));
+    const lg=document.getElementById('agg-lgd-'+pi); if(lg)lg.classList.add('lit');
+    await sleep(240);
+  }
+  // (d) hold before the timeline loops back to the cover
+  await sleep(3200);
+}
+async function stageEmergent(my){
+  setStage(9); await sleep(360); if(my!==runId)return;
+  for(const c of [document.getElementById('emg-b'),document.getElementById('emg-c'),document.getElementById('emg-d')]){ if(my!==runId)return; c.classList.add('in'); await sleep(160); }
+  await sleep(4200);
+}
+const STAGE_FNS=[stageCover,stageInput,stageResearch,stageReport,stageSynth,stageCritic,stageNetwork,stageResults,stageOverview,stageEmergent];
+async function runTimeline(startIdx=0){
+  const my=++runId;
+  let idx=startIdx;
+  while(my===runId){
+    resetAll();
+    for(let i=idx;i<STAGE_FNS.length;i++){
+      await STAGE_FNS[i](my);
+      if(my!==runId)return;
+    }
+    await sleep(600);
+    idx=0;   // after the first (possibly partial) pass, always loop from the cover
+  }
+}
+// jump straight to a pipeline stage (1..6) when its stepper item is clicked
+function skipToStage(n){
+  if(paused)setPaused(false);
+  runTimeline(n);
+}
+const btnPause=document.getElementById('btn-pause');
+function setPaused(p){
+  if(paused===p)return;
+  paused=p;
+  stageEl.classList.toggle('paused',p);
+  btnPause.classList.toggle('active',p);
+  btnPause.innerHTML=p?'<span class="ico">▶</span> Play':'<span class="ico">⏸</span> Pause';
+  activeTimers.forEach(t=>p?t.pause():t.resume());
+  const v=document.getElementById('bg-video'); if(v){ p ? v.pause() : v.play(); }
+}
+btnPause.addEventListener('click',()=>setPaused(!paused));
+document.getElementById('btn-replay').addEventListener('click',()=>{if(paused)setPaused(false);runTimeline();});
+document.getElementById('btn-speed').addEventListener('click',e=>{
+  speed=speed===1?2:1;e.target.textContent=speed+'×';
+});
+
+const requestedStage=Number.parseInt(new URLSearchParams(window.location.search).get('stage')||'0',10);
+if(requestedStage>=1 && requestedStage<STAGE_FNS.length){
+  coverEl.classList.add('hide');
+  brandDock.classList.add('docked');
+  runTimeline(requestedStage);
+}else{
+  runTimeline();
+}
+</script>
+</body>
+</html>

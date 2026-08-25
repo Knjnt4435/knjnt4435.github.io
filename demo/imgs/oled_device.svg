@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" role="img" aria-labelledby="title">
+  <title id="title">Solution-processed multilayer OLED device</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#6275F5"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#55E6D0" stop-opacity=".58"/><stop offset="1" stop-color="#55E6D0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="120" cy="75" rx="80" ry="65" fill="url(#halo)"/>
+  <path d="M74 64 61 39m35 17-3-32m27 30 7-32m14 39 18-25m-4 48 29-12" fill="none" stroke="#79F2D9" stroke-width="4" stroke-linecap="round"/>
+  <g transform="translate(31 74)">
+    <path d="m0 25 34-18h145l-34 18z" fill="#A7B5FF" stroke="#D9DEFF"/>
+    <path d="m0 25 145 0v18H0z" fill="#5266E7" stroke="#AAB6FF"/>
+    <path d="m145 25 34-18v18l-34 18z" fill="#3546A7" stroke="#AAB6FF"/>
+    <path d="m0 46 34-18h145l-34 18z" fill="#77E1D0" stroke="#C2FFF5"/>
+    <path d="m0 46 145 0v18H0z" fill="#22BFA8" stroke="#97F3E4"/>
+    <path d="m145 46 34-18v18l-34 18z" fill="#167C72" stroke="#97F3E4"/>
+    <path d="m0 67 34-18h145l-34 18z" fill="#F9C96C" stroke="#FFE5AD"/>
+    <path d="m0 67 145 0v21H0z" fill="#E99A37" stroke="#FFD48B"/>
+    <path d="m145 67 34-18v21l-34 18z" fill="#9F5E1D" stroke="#FFD48B"/>
+    <path d="m0 91 34-18h145l-34 18z" fill="#83BFF7" stroke="#C8E6FF"/>
+    <path d="m0 91 145 0v18H0z" fill="#428FD9" stroke="#A5D5FF"/>
+    <path d="m145 91 34-18v18l-34 18z" fill="#28649D" stroke="#A5D5FF"/>
+    <path d="m0 112 34-18h145l-34 18z" fill="#DCE5F7" stroke="#FFFFFF"/>
+    <path d="m0 112 145 0v16H0z" fill="#95A3BD" stroke="#DFE7F5"/>
+    <path d="m145 112 34-18v16l-34 18z" fill="#63718C" stroke="#DFE7F5"/>
+  </g>
+  <g fill="#DCE5F7" font-family="Arial,sans-serif" font-size="9" font-weight="700">
+    <text x="43" y="211">ITO</text><text x="77" y="211">HTL</text><text x="111" y="211" fill="#FCD34D">EML</text><text x="148" y="211">ETL</text><text x="181" y="211">Al</text>
+  </g>
+</svg>
